@@ -10,6 +10,11 @@ export default {
     new MonacoWebpackPlugin({
       languages: ["javascript", "typescript", "html", "css"],
     }),
+    // The dev server serves ./public automatically; a build has to copy it so
+    // the manifest, service worker and icons land next to the bundle.
+    new rspack.CopyRspackPlugin({
+      patterns: [{ from: "public", noErrorOnMissing: true }],
+    }),
   ],
   module: {
     rules: [

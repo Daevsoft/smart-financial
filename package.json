@@ -1,10 +1,11 @@
 {
   "name": "mini-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "FinTrack — offline personal finance tracker (installable PWA) built with Jetz.",
   "main": "index.js",
   "scripts": {
     "start": "rspack serve",
+    "build": "rspack build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

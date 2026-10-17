@@ -1,7 +1,7 @@
 import { stateOf, computed, listOf, loop, batch, onMount, onDestroy } from "@daevsoft/jetz";
 import { div, span, button, select, option, inputNumber, label, a } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
-import { dispatcher, Actions } from "../state/store.js";
+import { dispatcher, Actions, categories } from "../state/store.js";
 import {
   spendingByCategory, visibleTransactions, totalExpense, savingsRate,
   budgetPct, txCount, scopeLabel,
@@ -195,27 +195,44 @@ function buildInsightModal() {
 
 function buildBudgetModal() {
   const open = stateOf(false);
-  const categoryId = stateOf(spendingByCategory.values[0]?.id || "food");
+  const categoryId = stateOf("");
   const amount = stateOf("");
   const error = stateOf("");
 
+  // Budgets apply to every expense category, not only the ones with spending in
+  // the current scope, so the picker reads the category store directly. `.values`
+  // reads are untracked; the list is re-snapped when the sheet opens.
+  const budgetCats = listOf();
+  const snapCats = () => {
+    const cats = categories.values.filter(c => c.type === "expense");
+    budgetCats.set(cats.length ? cats : [{ id: "", name: t("noCategories") }]);
+    if (!cats.some(c => c.id === categoryId.value)) categoryId.value = cats.length ? cats[0].id : "";
+    return cats.length;
+  };
+  snapCats();
+
   const catSelect = select(
     { class: "input", onchange: e => (categoryId.value = e.target.value) },
-    spendingByCategory.values.length
-      ? spendingByCategory.values.map(c => option({ value: c.id }, c.name))
-      : option({ value: "food" }, tt("noCategories"))
+    loop(budgetCats, c => `${c.id}:${c.name}`, c => option({ value: c.id }, c.name))
   );
   const syncCat = () => {
-    if (catSelect.o) catSelect.o.value = categoryId.value;
+    if (catSelect.o && categoryId.value) catSelect.o.value = categoryId.value;
   };
   categoryId.subscribe(syncCat);
   onMount(syncCat);
-  open.subscribe(() => scrollLock(open.value));
+  open.subscribe(() => {
+    if (open.value && snapCats()) error.value = "";
+    syncCat();
+    scrollLock(open.value);
+  });
   onDestroy(() => {
     if (open.value) scrollLock(false);
   });
 
   const submit = () => {
+    if (!categoryId.value || !budgetCats.values.some(c => c.id === categoryId.value)) {
+      return (error.value = t("noCategories"));
+    }
     const amt = parseFloat(amount.value);
     if (!Number.isFinite(amt) || amt < 0) return (error.value = t("enterValidAmount"));
     dispatcher.dispatch(Actions.BUDGET_SET, { id: categoryId.value, budget: Math.round(amt * 100) / 100 });
