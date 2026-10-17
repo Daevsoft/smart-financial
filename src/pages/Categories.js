@@ -245,7 +245,9 @@ export function Categories() {
       div(css`card text-center text-sm text-slate-500 dark:text-slate-400`, tt("noCategories"))
     ),
     CategoryForm({ open: formOpen, editing, onClose: () => (formOpen.value = false) }),
-    loop(categories, c => c.id, c => categoryRow(c, { onEdit: openEdit, onDelete: remove })),
+    // Own container: loop() prepends rebuilt rows into its parent, which would
+    // otherwise drop the page header below the list after any category edit.
+    div(css`space-y-6`, loop(categories, c => c.id, c => categoryRow(c, { onEdit: openEdit, onDelete: remove })))
   );
 }
 

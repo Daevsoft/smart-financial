@@ -20,9 +20,11 @@ import { UI } from "../components/icons.js";
 function monthPicker() {
   const sel = select(
     { class: "input w-44", onchange: e => (selectedMonth.value = e.target.value) },
-    option({ value: "all" }, tt("allTime")),
-    // Label is part of the key: same-key rows are recycled without re-render,
-    // so a language change must force a fresh option element.
+    // The loop is the select's only child: it prepends rebuilt options into its
+    // parent, so a sibling <option> would sink to the bottom. "All time" is the
+    // first entry of monthOptions. Label is part of the key because same-key
+    // rows are recycled without re-render, so a language change must force a
+    // fresh option element.
     loop(monthOptions, m => `${m.value}:${m.label}`, m => option({ value: m.value }, m.label))
   );
   const sync = () => {

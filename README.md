@@ -315,6 +315,10 @@ Routes are hash-based: `#/`, `#/transactions`, `#/budgets`, `#/categories`, `#/s
   `fintrack-v*` cache. Bumping `CACHE` in `public/sw.js` also drops the previous cache on activate.
 - Tailwind's scanner cannot see dynamically interpolated class names, so every class used inside a
   `class: () => …` callback must also appear literally somewhere in the source.
+- A `loop()` must be the only child of its parent element: Jetz's keyed reconciler moves rebuilt
+  views with `parent.prepend(...)`, so any sibling (page heading, table header row, static
+  `<option>`, empty-state message) sinks below the rows on the first list update. Lists are
+  therefore wrapped in their own container, and entries like "All time" live inside the looped data.
 - `src/playground.js` and the Monaco plugin are leftover framework scaffolding — the app entry does
   not import them.
 - `pnpm test` is a placeholder; there is no test suite yet.

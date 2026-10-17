@@ -72,6 +72,8 @@ td({ class: () => emp.dept });        // reactive attribute
 
 **One `loop()` site per `ListState`.** Two `loop()` calls over the same list fight over its DOM: the second site receives nodes produced by the first renderer (e.g. `<tr>` inside a card container) and renders nothing useful. Render the list once and make the single row layout responsive instead.
 
+**A `loop()` must be the only child of its parent element.** The reconciler inserts and moves rebuilt views with `parent.prepend(...)`, so on the first list update every non-loop sibling — a page heading, a table header row, a static `<option>`, an empty-state message — is pushed below the rows. Wrap the loop in its own container (`div(css\`space-y-4\`, loop(...))`) and put entries like an "All time" option inside the looped data.
+
 **Same-key recycling freezes plain children.** A rebuilt list that keeps the key (derived month/category rows, localized labels) reuses the DOM node without re-running the render function, so plain string children and closed-over values (`const over = r.budget > 0`) stay stale. Make derived content either a `computed()` child, or fold the value into the key: `list(m => `${m.value}:${m.label}`, ...)`.
 
 **Large tables use shallow rows.** `rowOf(obj)` (alias `shallowStateOf`) gives a record one version signal instead of one State per property; bump with `row.touch()` / `row.set(patch)`, read untracked with `rawOf(row)` in filter/sort pipelines, bulk-bump with `touchRow(row)`.

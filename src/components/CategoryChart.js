@@ -31,14 +31,16 @@ export function CategoryChart() {
           { style: { display: () => (totalExpense.value ? "none" : "block") } },
           div(css`py-6 text-center text-sm text-slate-400 dark:text-slate-500`, tt("noSpending"))
         ),
-        loop(spendingByCategory, r => r.id, r =>
+        // Own container: loop() prepends rebuilt rows into its parent, which
+        // would otherwise push the empty-state message above the list.
+        div(css`space-y-2.5`, loop(spendingByCategory, r => r.id, r =>
           div(
             css`flex items-center gap-2 sm:gap-3`,
             span({ class: "h-2.5 w-2.5 shrink-0 rounded-full", style: { backgroundColor: r.color } }),
             span(css`min-w-0 flex-1 truncate text-sm text-slate-600 dark:text-slate-300`, r.name),
             span(css`shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100`, computed(() => fmt(r.total))),
             span(css`w-12 shrink-0 text-right text-xs tabular-nums text-slate-400 dark:text-slate-500`, `${r.share.toFixed(1)}%`)
-          ))
+          )))
       )
     )
   );

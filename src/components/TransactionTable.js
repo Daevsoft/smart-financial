@@ -102,7 +102,9 @@ export function TransactionTable({ rows, count, onEdit = null }) {
     div(
       { style: { display: () => (count.value ? "block" : "none") } },
       head(),
-      loop(rows, tx => tx.id, row)
+      // Own container: loop() prepends rebuilt rows into its parent, which would
+      // otherwise push the column header below the list.
+      div(loop(rows, tx => tx.id, row))
     )
   );
 }

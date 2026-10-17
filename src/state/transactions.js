@@ -247,9 +247,14 @@ export function refreshDerived() {
   totalIncome.value = round2(income);
   totalExpense.value = round2(expense);
 
-  // Month options from the data
-  const keys = [...new Set(transactions.values.map(t => monthKey(t.date)))].sort().reverse();
-  monthOptions.set(keys.map(k => ({ value: k, label: monthLabel(k) })));
+  // Month options from the data. "All time" lives inside the list rather than as
+  // a static <option> sibling: a loop() prepends its views into its parent
+  // element, so any sibling of the loop gets pushed out of order on a rebuild.
+  const keys = [...new Set(transactions.values.map(tx => monthKey(tx.date)))].sort().reverse();
+  monthOptions.set([
+    { value: "all", label: t("allTime") },
+    ...keys.map(k => ({ value: k, label: monthLabel(k) })),
+  ]);
 
   // Delta vs the previous calendar month
   const scopeKey = selectedMonth.value === "all" ? (keys[0] || null) : selectedMonth.value;

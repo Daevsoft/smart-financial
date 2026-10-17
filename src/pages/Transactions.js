@@ -26,7 +26,8 @@ function filterSelect(state, onChange, options) {
 function periodSelect() {
   const sel = select(
     { class: "input", onchange: e => (selectedMonth.value = e.target.value) },
-    option({ value: "all" }, tt("allTime")),
+    // Only child of the select — see monthPicker() on the dashboard for why a
+    // sibling <option> would sink below the rebuilt month options.
     loop(monthOptions, m => `${m.value}:${m.label}`, m => option({ value: m.value }, m.label))
   );
   const sync = () => {
