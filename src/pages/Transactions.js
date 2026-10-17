@@ -1,10 +1,12 @@
-import { stateOf, computed, loop, onMount } from "@daevsoft/jetz";
+import { stateOf, computed, loop, onMount, onDestroy } from "@daevsoft/jetz";
 import { div, p, button, label, inputText, select, option, span } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { TransactionTable } from "../components/TransactionTable.js";
 import { TransactionForm } from "../components/TransactionForm.js";
 import { filters, categories, selectedMonth } from "../state/store.js";
-import { visibleTransactions, txCount, scopeLabel, totalIncome, totalExpense, monthOptions } from "../state/transactions.js";
+import { visibleTransactions, txCount, scopeLabel, totalIncome, totalExpense, monthOptions, todayISO } from "../state/transactions.js";
+import { downloadFile } from "../services/storage.js";
+import { ledgerToCSV } from "../services/exportLedger.js";
 import { fmt } from "../state/preferences.js";
 import { t, tt } from "../state/i18n.js";
 import { Icon, UI } from "../components/icons.js";
@@ -51,6 +53,17 @@ export function Transactions() {
     formOpen.value = true;
   };
 
+  const exported = stateOf("");
+  let timer = null;
+  const doExportCsv = () => {
+    const list = visibleTransactions.values;
+    downloadFile(`fintrack-transactions-${todayISO()}.csv`, ledgerToCSV(list), "text/csv");
+    exported.value = t("csvExported", { n: list.length });
+    clearTimeout(timer);
+    timer = setTimeout(() => (exported.value = ""), 3000);
+  };
+  onDestroy(() => clearTimeout(timer));
+
   return div(
     css`space-y-6`,
     div(
@@ -60,7 +73,15 @@ export function Transactions() {
         p(css`mt-1 text-sm text-slate-500 dark:text-slate-400`,
           computed(() => `${txCount.value} ${t("inView")} · ${scopeLabel.value}`))
       ),
-      button({ class: "btn btn-primary", onclick: openAdd }, Icon(UI.plus, "h-4 w-4"), " ", tt("addTransaction"))
+      div(
+        css`flex flex-wrap items-center justify-end gap-2`,
+        span(
+          { class: () => `${exported.value ? "animate-fade-in-up" : "hidden"} mr-1 text-xs font-medium text-brand-600 dark:text-brand-400` },
+          exported
+        ),
+        button({ class: "btn btn-ghost ring-1 ring-slate-300 dark:ring-slate-700", onclick: doExportCsv }, Icon(UI.sheet, "h-4 w-4"), " ", tt("exportCsv")),
+        button({ class: "btn btn-primary", onclick: openAdd }, Icon(UI.plus, "h-4 w-4"), " ", tt("addTransaction"))
+      )
     ),
     div(
       css`card grid gap-3 sm:grid-cols-2 lg:grid-cols-4`,

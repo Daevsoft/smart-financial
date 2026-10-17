@@ -27,6 +27,25 @@ export function clearAll() {
   for (const key of Object.values(KEYS)) localStorage.removeItem(key);
 }
 
+// rows: array of arrays. Excel needs the UTF-8 BOM to read non-ASCII, and the
+// separator must differ from the locale's decimal mark or amounts split columns.
+export function toCSV(rows, separator = ",") {
+  const esc = v => {
+    const s = String(v ?? "");
+    return s.includes(separator) || s.includes('"') || /[\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return `\uFEFF${rows.map(r => r.map(esc).join(separator)).join("\r\n")}\r\n`;
+}
+
+export function downloadFile(name, content, mime) {
+  const url = URL.createObjectURL(new Blob([content], { type: `${mime};charset=utf-8` }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export function exportSnapshot(transactions, categories, prefs) {
   return JSON.stringify(
     {

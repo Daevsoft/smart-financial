@@ -45,7 +45,7 @@
 
 Most budgeting tools are either spreadsheets or cloud accounts. FinTrack aims for the middle: a real
 app — dashboards, charts, budgets, filters — that is entirely local. Everything lives in
-`localStorage`, exports to a plain JSON file, and reimports from one.
+`localStorage`, exports to a plain JSON file or an Excel-friendly CSV, and reimports from the JSON snapshot.
 
 It doubles as a reference for building a non-trivial SPA with [Jetz](https://github.com/devarofi/jetz):
 plain JavaScript composition functions instead of JSX, fine-grained reactive state instead of a
@@ -146,6 +146,7 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
 - Add, edit and delete through a bottom-sheet form (centered modal on desktop).
 - Two-way bound inputs (`{ bind: state }`), income/expense toggle, category picker, date and amount.
 - Live search plus filters by type, category and month; the month list is derived from the data.
+- Export the rows currently in view to CSV from the toolbar; a short note confirms how many were written.
 - Responsive row layout: stacked label/value pairs on narrow screens, a six-column grid inside wide
   containers — the same component adapts to the card it sits in, not the viewport.
 
@@ -166,6 +167,7 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
 
 - Theme (light/dark), currency, and language.
 - Export the full snapshot to JSON, import a snapshot file (validated; malformed records dropped).
+- Export every transaction as CSV — no filters applied, so nothing is left behind.
 - Load demo data, clear all transactions.
 
 ---
@@ -199,8 +201,11 @@ explicit through `dispatcher.waitFor(...)` rather than module import order: pers
 | `fintracker.prefs` | `{ theme, currency, language }` |
 
 `src/services/storage.js` owns the keys plus `loadJSON`, `saveJSON`, `clearAll`, `exportSnapshot`
-and `importSnapshot`. Import is defensive: a snapshot must contain `transactions` and `categories`
-arrays, and records are shape-filtered before they reach the store.
+and `importSnapshot`, and the CSV primitives: `toCSV` (UTF-8 BOM, `\r\n`, quotes only where needed) and
+`downloadFile` (blob → anchor click → revoke). `src/services/exportLedger.js` maps records to rows,
+localizing headers and picking `;` when the locale writes decimals with `,`. Import is defensive: a
+snapshot must contain `transactions` and `categories` arrays, and records are shape-filtered before they
+reach the store.
 
 ### Derived state
 
@@ -285,7 +290,8 @@ reactive, so the sheet retranslates live.
     ├── styles/app.css         # tailwind entry, design tokens, component classes
     ├── data/                  # seed categories and transactions (JSON)
     ├── services/
-    │   ├── storage.js         # localStorage keys, snapshot export/import
+    │   ├── storage.js         # localStorage keys, snapshot export/import, CSV + download helpers
+    │   ├── exportLedger.js    # ledger → locale-aware CSV rows for Excel/Sheets
     │   └── mockData.js        # demo data generator
     ├── state/
     │   ├── store.js           # actions, lists, prefs, dispatcher, persistence

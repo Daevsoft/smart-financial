@@ -4,7 +4,8 @@ import { css } from "@daevsoft/jetz/ui";
 import { prefs, dispatcher, Actions, transactions, categories } from "../state/store.js";
 import { CURRENCY_CODES, setPrefs } from "../state/preferences.js";
 import { txCount, catCount, todayISO } from "../state/transactions.js";
-import { exportSnapshot, importSnapshot } from "../services/storage.js";
+import { exportSnapshot, importSnapshot, downloadFile } from "../services/storage.js";
+import { ledgerToCSV } from "../services/exportLedger.js";
 import { LANGUAGES, t, tt } from "../state/i18n.js";
 import { Icon, UI } from "../components/icons.js";
 
@@ -23,16 +24,14 @@ export function Settings() {
   const status = stateOf("");
 
   const doExport = () => {
-    const blob = new Blob([exportSnapshot(transactions.values, categories.values, prefs.toObject())], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `fintrack-export-${todayISO()}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadFile(`fintrack-export-${todayISO()}.json`, exportSnapshot(transactions.values, categories.values, prefs.toObject()), "application/json");
     status.value = t("statusExported");
+  };
+
+  const doExportCsv = () => {
+    const list = transactions.values;
+    downloadFile(`fintrack-ledger-${todayISO()}.csv`, ledgerToCSV(list), "text/csv");
+    status.value = t("csvExported", { n: list.length });
   };
 
   const onFile = async e => {
@@ -101,6 +100,7 @@ export function Settings() {
       div(
         css`flex flex-wrap gap-2`,
         button({ class: "btn btn-primary", onclick: doExport }, Icon(UI.download, "h-4 w-4"), " ", tt("exportJson")),
+        button({ class: "btn btn-ghost ring-1 ring-slate-300 dark:ring-slate-700", onclick: doExportCsv }, Icon(UI.sheet, "h-4 w-4"), " ", tt("exportCsvAll")),
         button({ class: "btn btn-ghost ring-1 ring-slate-300 dark:ring-slate-700", onclick: () => fileInput.o.click() }, Icon(UI.upload, "h-4 w-4"), " ", tt("importJson")),
         fileInput
       ),
