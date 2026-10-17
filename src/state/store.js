@@ -39,6 +39,8 @@ function migrateIcons(cats) {
   return cats;
 }
 
+// `seeded` reports whether this load generated the demo dataset, which is what
+// triggers the first-visit confirmation sheet.
 function boot() {
   let txs = loadJSON(KEYS.transactions, null);
   let cats = loadJSON(KEYS.categories, null);
@@ -48,10 +50,10 @@ function boot() {
     cats = demo.categories;
     saveJSON(KEYS.transactions, txs);
     saveJSON(KEYS.categories, cats);
-  } else {
-    migrateIcons(cats);
+    return { txs, cats, seeded: true };
   }
-  return { txs, cats };
+  migrateIcons(cats);
+  return { txs, cats, seeded: false };
 }
 
 const bootData = boot();
@@ -60,7 +62,20 @@ export const transactions = listOf(...bootData.txs);
 export const categories = listOf(...bootData.cats);
 // Defaults first so prefs saved before a key existed (e.g. language) still
 // get the fallback value through stateOf's property walk.
-export const prefs = stateOf({ theme: "light", currency: "USD", language: "en", ...loadJSON(KEYS.prefs, {}) });
+export const prefs = stateOf({
+  theme: "light",
+  currency: "USD",
+  language: "en",
+  demoAsk: false,
+  ...loadJSON(KEYS.prefs, {}),
+});
+
+// Recorded in storage so the question survives a refresh: it stays open until
+// the user actually answers it in the sheet.
+if (bootData.seeded) {
+  prefs.demoAsk.value = true;
+  saveJSON(KEYS.prefs, prefs.toObject());
+}
 
 // UI-local global state (filters + selected period). Written directly by
 // controls; state/transactions.js watches them to re-derive lists.
@@ -88,6 +103,9 @@ function replaceAll({ transactions: txs, categories: cats, preferences }) {
   filters.type.value = "all";
   filters.categoryId.value = "all";
   selectedMonth.value = "all";
+  // An explicit import or demo load is the user's own choice, so the
+  // first-visit question no longer applies.
+  prefs.demoAsk.value = false;
 }
 
 dispatcher.subscribe("store", (action, payload) => {
@@ -140,6 +158,7 @@ dispatcher.subscribe("store", (action, payload) => {
       break;
     case Actions.DATA_CLEAR:
       transactions.clear();
+      prefs.demoAsk.value = false;
       break;
   }
 });
@@ -168,6 +187,9 @@ dispatcher.subscribe("persist", action => {
       saveJSON(KEYS.categories, categories.values);
       break;
     case Actions.PREFS_SET:
+    case Actions.DATA_CLEAR: // clears the pending first-visit question
+    case Actions.DATA_IMPORT:
+    case Actions.DATA_DEMO:
       saveJSON(KEYS.prefs, prefs.toObject());
       break;
   }

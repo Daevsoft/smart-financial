@@ -63,8 +63,10 @@ pnpm start          # rspack serve → http://localhost:8080
 ```
 
 The first load seeds roughly nine months of demo transactions and a default category set so the
-charts are never empty. Use **Settings → Load demo data** to regenerate, or **Clear all
-transactions** to start from zero.
+charts are never empty, then a sheet asks whether to keep that sample data or **start fresh**
+(clears the transactions, keeps the categories). The answer is stored in `fintracker.prefs`, so the
+question appears once and never again — reloads included. Later, use **Settings → Load demo data**
+to regenerate, or **Clear all transactions** to start from zero.
 
 ```bash
 pnpm build          # rspack build → dist/ (bundle + public assets)
@@ -289,7 +291,7 @@ are left as written.
     │   ├── AppLayout.js       Sidebar.js          StatCard.js
     │   ├── TrendChart.js      NetTrendChart.js    CategoryChart.js
     │   ├── TransactionTable.js      TransactionForm.js
-    │   ├── QuickActions.js    BudgetAlert.js      icons.js
+    │   ├── QuickActions.js    BudgetAlert.js      DemoNotice.js   icons.js
     └── pages/
         ├── Dashboard.js   Transactions.js   Budgets.js   Categories.js   Settings.js
 ```

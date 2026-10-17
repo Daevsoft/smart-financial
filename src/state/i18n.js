@@ -81,6 +81,17 @@ const DICT = {
     savingsKeptSub: "of income kept this period",
     budgetUsed: "Budget used",
 
+    // First-visit demo sheet
+    demoNoticeTitle: "Sample data included",
+    demoNoticeBody:
+      "To make the charts useful on your first visit, FinTrack seeded {n} sample transactions. They are dummy data — none of it is your real spending.",
+    demoNoticeAsk: "Do you want to clear it and start with an empty ledger?",
+    demoStartFresh: "Start fresh",
+    demoKeep: "Keep sample data",
+    demoFreshNote: "Removes the {n} sample transactions. Categories and preferences are kept.",
+    demoKeepNote: "Keeps the demo history so you can explore first.",
+    demoLaterNote: "You can change your mind anytime in Settings → Data.",
+
     // Trend chart
     cashFlowTrend: "Cash Flow Trend",
     incomeVsExpenses: "income vs expenses",
@@ -245,6 +256,16 @@ const DICT = {
     acrossDays: "dalam {n} {unit} aktif",
     savingsKeptSub: "pendapatan yang tersimpan periode ini",
     budgetUsed: "Anggaran terpakai",
+
+    demoNoticeTitle: "Sudah berisi data contoh",
+    demoNoticeBody:
+      "Agar grafik langsung berguna saat kunjungan pertama, FinTrack menyiapkan {n} transaksi contoh. Ini data dummy — bukan pengeluaran Anda yang sebenarnya.",
+    demoNoticeAsk: "Ingin menghapusnya dan mulai dengan buku kosong?",
+    demoStartFresh: "Mulai kosong",
+    demoKeep: "Pertahankan contoh",
+    demoFreshNote: "Menghapus {n} transaksi contoh. Kategori dan preferensi tetap disimpan.",
+    demoKeepNote: "Riwayat demo dipertahankan agar Anda bisa menjelajah lebih dulu.",
+    demoLaterNote: "Anda bisa mengubahnya kapan saja di Pengaturan → Data.",
 
     cashFlowTrend: "Tren Arus Kas",
     incomeVsExpenses: "pemasukan vs pengeluaran",
