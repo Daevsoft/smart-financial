@@ -85,11 +85,15 @@ FinTrack is a PWA:
 - `public/img/app-icon.svg` and `app-icon-maskable.svg` are the icon sources (bars + trend arrow on
   the brand gradient); the maskable variant keeps the glyph inside the safe zone.
 - `public/sw.js` — a network-first worker: same-origin GETs go to the network and are mirrored into
-  the `fintrack-v1` cache, and a failed navigation falls back to the cached `index.html`. Because it
+  the `fintrack-v*` cache, and a failed navigation falls back to the cached `index.html`. Because it
   is network-first, a dev-server rebuild is always picked up on the next load. Registered from
   `index.js` on `load`.
-- No backend, no API calls: once the shell is cached the app is fully usable offline, and
-  LocalStorage keeps working.
+- On `install` the worker fetches `/index.html`, scans its `src`/`href` attributes and precaches
+  those too — `DOMParser` is not available in a service worker, so it is a regex scan. This matters:
+  the very first document request is not intercepted (no worker exists yet), so without it
+  `main.js` would never be cached and a cold offline start would render a blank page.
+- No backend, no API calls: after one visit the app is fully usable with no network — routes, charts,
+  forms and LocalStorage all work.
 
 Install with the browser's install entry (address-bar icon on desktop, browser menu on Android);
 `localhost` counts as a secure context, so installs can be tested locally.
@@ -300,7 +304,7 @@ Routes are hash-based: `#/`, `#/transactions`, `#/budgets`, `#/categories`, `#/s
   emits `dist/` and copies `public/` into it via `CopyRspackPlugin`.
 - The service worker is network-first, so development reloads are never stale. To reset a stuck
   registration: DevTools → Application → Service Workers → Unregister, then clear the
-  `fintrack-v1` cache.
+  `fintrack-v*` cache. Bumping `CACHE` in `public/sw.js` also drops the previous cache on activate.
 - Tailwind's scanner cannot see dynamically interpolated class names, so every class used inside a
   `class: () => …` callback must also appear literally somewhere in the source.
 - `src/playground.js` and the Monaco plugin are leftover framework scaffolding — the app entry does
