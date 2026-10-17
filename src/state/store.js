@@ -64,8 +64,8 @@ export const categories = listOf(...bootData.cats);
 // get the fallback value through stateOf's property walk.
 export const prefs = stateOf({
   theme: "light",
-  currency: "USD",
-  language: "en",
+  currency: "IDR",
+  language: "id",
   demoAsk: false,
   ...loadJSON(KEYS.prefs, {}),
 });
@@ -97,7 +97,7 @@ function replaceAll({ transactions: txs, categories: cats, preferences }) {
   categories.set(cats);
   if (preferences) {
     prefs.theme.value = preferences.theme || "light";
-    prefs.currency.value = preferences.currency || "USD";
+    prefs.currency.value = preferences.currency || "IDR";
   }
   filters.search.value = "";
   filters.type.value = "all";

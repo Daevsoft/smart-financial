@@ -1,8 +1,9 @@
-import { computed, effect, onDestroy } from "@daevsoft/jetz";
-import { div, span, button } from "@daevsoft/jetz/ui";
+import { computed, effect, onMount, onDestroy } from "@daevsoft/jetz";
+import { div, span, button, select, option } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { dispatcher, Actions, prefs, transactions } from "../state/store.js";
-import { t, tt } from "../state/i18n.js";
+import { setPrefs } from "../state/preferences.js";
+import { LANGUAGES, t, tt } from "../state/i18n.js";
 import { scrollLock } from "../state/ui.js";
 import { Icon, UI } from "./icons.js";
 
@@ -37,6 +38,18 @@ export function DemoNotice() {
       ),
       div(css`mt-1 text-xs leading-relaxed opacity-80`, note)
     );
+
+  // The default UI language is Indonesian, so an English visitor can switch here
+  // — every label in the sheet is reactive, so it retranslates immediately.
+  const langSelect = select(
+    { class: "input w-36", onchange: e => setPrefs({ language: e.target.value }) },
+    Object.entries(LANGUAGES).map(([code, name]) => option({ value: code }, name))
+  );
+  const syncLang = () => {
+    if (langSelect.o) langSelect.o.value = prefs.language.value;
+  };
+  prefs.language.subscribe(syncLang);
+  onMount(syncLang);
 
   // Locks are counted globally, so only report a real transition.
   let locked = false;
@@ -86,6 +99,11 @@ export function DemoNotice() {
       div(css`text-sm leading-relaxed text-slate-600 dark:text-slate-300`,
         computed(() => t("demoNoticeBody", { n: seededCount }))),
       div(css`text-sm font-semibold text-slate-900 dark:text-white`, tt("demoNoticeAsk")),
+      div(
+        css`flex items-center gap-2`,
+        span(css`card-title`, tt("language")),
+        langSelect
+      ),
       div(
         css`space-y-2`,
         fresh,

@@ -63,10 +63,11 @@ pnpm start          # rspack serve → http://localhost:8080
 ```
 
 The first load seeds roughly nine months of demo transactions and a default category set so the
-charts are never empty, then a sheet asks whether to keep that sample data or **start fresh**
-(clears the transactions, keeps the categories). The answer is stored in `fintracker.prefs`, so the
-question appears once and never again — reloads included. Later, use **Settings → Load demo data**
-to regenerate, or **Clear all transactions** to start from zero.
+charts are never empty (amounts are generated in rupiah, matching the IDR default), then a sheet
+asks whether to keep that sample data or **start fresh** (clears the transactions, keeps the
+categories). The answer is stored in `fintracker.prefs`, so the question appears once and never
+again — reloads included. Later, use **Settings → Load demo data** to regenerate, or **Clear all
+transactions** to start from zero.
 
 ```bash
 pnpm build          # rspack build → dist/ (bundle + public assets)
@@ -217,10 +218,15 @@ Reactivity rules that matter here:
 
 ### Internationalization
 
-`src/state/i18n.js` holds ~140 keys in English and Indonesian. `t(key)` / `tt(key)` return reactive
+`src/state/i18n.js` holds ~150 keys in English and Indonesian. `t(key)` / `tt(key)` return reactive
 values, so switching language updates the UI in place without a remount, and `<html lang>` stays in
 sync. Only interface chrome is translated — user-entered category names and transaction descriptions
 are left as written.
+
+Bahasa Indonesia and IDR are the initial defaults (`state/store.js` merges stored prefs *over* them,
+so a returning user keeps their choice). The first-visit sheet carries a language picker, so someone
+who lands on the Indonesian UI can switch to English before answering — every label in it is
+reactive, so the sheet retranslates live.
 
 ### Theme and currency
 

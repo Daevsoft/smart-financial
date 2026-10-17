@@ -33,7 +33,12 @@ const RANGES = {
 export function generateDemoData() {
   const rand = mulberry32(20260831);
   const pick = arr => arr[Math.floor(rand() * arr.length)];
-  const amount = (min, max) => Math.round((min + rand() * (max - min)) * 100) / 100;
+  // The app defaults to IDR, so the ledger is generated in rupiah. The ranges
+  // below keep their original dollar-scale tuning and are multiplied out, which
+  // preserves every ratio the demo was calibrated on (budget vs spend, income
+  // vs expense).
+  const money = v => Math.round(v * 16000);
+  const amount = (min, max) => money(min + rand() * (max - min));
   const txs = [];
   let n = 0;
   const id = () => `tx-gen-${++n}`;
@@ -49,7 +54,7 @@ export function generateDemoData() {
     const day = d => `${year}-${String(month + 1).padStart(2, "0")}-${String(Math.min(d, lastDay)).padStart(2, "0")}`;
     // Gentle inflation so the trend lines drift upward over the year.
     const drift = 1 + month * 0.035;
-    const cost = (min, max) => Math.round(amount(min, max) * drift * 100) / 100;
+    const cost = (min, max) => Math.round(amount(min, max) * drift);
 
     txs.push({
       id: id(),
@@ -104,5 +109,8 @@ export function generateDemoData() {
   }
 
   const transactions = txs.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
-  return { categories: categoriesSeed, transactions };
+  // Same scale-up for the seed budgets, otherwise every category reads as
+  // catastrophically over budget.
+  const categories = categoriesSeed.map(c => ({ ...c, budget: money(c.budget) }));
+  return { categories, transactions };
 }
