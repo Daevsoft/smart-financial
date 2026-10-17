@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="FinTrack — an offline personal finance tracker built with Jetz. All data stays in your browser's LocalStorage." />
+    <meta name="theme-color" content="#84cc16" />
+    <title>FinTrack — Personal Finance Tracker</title>
+    <script>
+      try {
+        var prefs = JSON.parse(localStorage.getItem("fintracker.prefs"));
+        if (prefs && prefs.theme === "dark") document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
+</head>
+<body>
+    <div id="app"></div>
+</body>
+</html>

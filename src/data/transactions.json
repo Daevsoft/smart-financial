@@ -1,0 +1,10 @@
+[
+  { "id": "tx-1001", "date": "2026-10-14", "description": "Starbucks", "categoryId": "food", "type": "expense", "amount": 4.75, "note": "Morning coffee" },
+  { "id": "tx-1002", "date": "2026-10-13", "description": "Amazon.com", "categoryId": "shopping", "type": "expense", "amount": 89.99, "note": "Desk lamp" },
+  { "id": "tx-1003", "date": "2026-10-10", "description": "Monthly Salary", "categoryId": "salary", "type": "income", "amount": 3600, "note": "" },
+  { "id": "tx-1004", "date": "2026-10-08", "description": "Uber", "categoryId": "transport", "type": "expense", "amount": 23.4, "note": "Airport ride" },
+  { "id": "tx-1005", "date": "2026-10-05", "description": "Netflix", "categoryId": "entertainment", "type": "expense", "amount": 15.49, "note": "" },
+  { "id": "tx-1006", "date": "2026-10-02", "description": "Electricity Bill", "categoryId": "bills", "type": "expense", "amount": 96.3, "note": "" },
+  { "id": "tx-1007", "date": "2026-10-01", "description": "Pharmacy", "categoryId": "health", "type": "expense", "amount": 18.2, "note": "" },
+  { "id": "tx-1008", "date": "2026-09-28", "description": "Sweetgreen", "categoryId": "food", "type": "expense", "amount": 13.5, "note": "" }
+]

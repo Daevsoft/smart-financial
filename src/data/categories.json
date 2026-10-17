@@ -1,0 +1,10 @@
+[
+  { "id": "salary", "name": "Salary", "type": "income", "color": "#84cc16", "icon": "briefcase", "budget": 0 },
+  { "id": "food", "name": "Food & Drinks", "type": "expense", "color": "#22c55e", "icon": "tools-kitchen-2", "budget": 400 },
+  { "id": "shopping", "name": "Shopping", "type": "expense", "color": "#eab308", "icon": "shopping-cart", "budget": 350 },
+  { "id": "transport", "name": "Transport", "type": "expense", "color": "#f97316", "icon": "car", "budget": 200 },
+  { "id": "entertainment", "name": "Entertainment", "type": "expense", "color": "#a855f7", "icon": "movie", "budget": 150 },
+  { "id": "bills", "name": "Bills & Utilities", "type": "expense", "color": "#ef4444", "icon": "receipt-2", "budget": 300 },
+  { "id": "health", "name": "Health", "type": "expense", "color": "#06b6d4", "icon": "pill", "budget": 120 },
+  { "id": "other", "name": "Other", "type": "expense", "color": "#94a3b8", "icon": "package", "budget": 100 }
+]
