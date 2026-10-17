@@ -20,6 +20,7 @@
 - [Why FinTrack?](#why-fintrack)
 - [Quick Start](#quick-start)
 - [Installable and offline](#installable-and-offline)
+- [Deploying](#deploying)
 - [Features](#features)
   - [Dashboard](#dashboard)
   - [Transactions](#transactions)
@@ -92,6 +93,33 @@ FinTrack is a PWA:
 
 Install with the browser's install entry (address-bar icon on desktop, browser menu on Android);
 `localhost` counts as a secure context, so installs can be tested locally.
+
+---
+
+## Deploying
+
+`vercel.json` carries the whole deploy config, so importing the GitHub repo needs no manual
+settings:
+
+| Setting | Value |
+|---|---|
+| Root directory | repository root (where `package.json` lives) |
+| Framework preset | `null` — Rspack is not auto-detected |
+| Install command | `pnpm install --frozen-lockfile` |
+| Build command | `pnpm build` |
+| Output directory | `dist` |
+
+`packageManager` is pinned in `package.json` because the host must use pnpm; an `npm`-based install
+fails on the `devEngines` declaration. Two rules in `vercel.json` matter for a PWA:
+
+- `rewrites` sends every unmatched path to `/index.html`, so path-style routes (`/budgets`) deep-link
+  correctly. Static files are matched first, so `/sw.js` and `/manifest.webmanifest` are never
+  swallowed by the rewrite.
+- `headers` forces `application/manifest+json` on the manifest (Chrome ignores a manifest served as
+  `text/plain`) and `no-cache` on the service worker so an updated worker is noticed immediately.
+
+Any static host works the same way — publish `dist/`, point the host's SPA fallback at
+`index.html`, and keep those two content types.
 
 ---
 
@@ -233,6 +261,7 @@ are left as written.
 ├── index.js                   # router install, Jetz.mount, service worker registration
 ├── rspack.config.mjs          # html/monaco/copy plugins, css + asset rules
 ├── postcss.config.mjs         # tailwind v4
+├── vercel.json                # build settings, SPA rewrite, PWA headers
 ├── public
 │   ├── manifest.webmanifest   # install metadata
 │   ├── sw.js                  # network-first offline shell

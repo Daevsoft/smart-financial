@@ -19,6 +19,7 @@
     }
   },
   "type": "module",
+  "packageManager": "pnpm@11.28.0",
   "devDependencies": {
     "@rspack/cli": "^2.2.8",
     "@rspack/core": "^2.2.8",
