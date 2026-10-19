@@ -29,13 +29,14 @@
 | `fintracker.transactions` | array of transaction records |
 | `fintracker.categories` | array of category records |
 | `fintracker.accounts` | array of account records |
-| `fintracker.savings` | flat object: `enabled`, `schedule`, `target`, `depositAccountId`, `sourceAccountId`, `lastPromptDay`, `skippedMonth`, plus `skippedDays: string[]` |
+| `fintracker.savings` | flat object: `enabled`, `schedule`, `target`, `startDay` (1–31, monthly reminder opens on it), `depositAccountId`, `sourceAccountId`, `lastPromptDay`, `skippedMonth`, plus `skippedDays: string[]` |
 | `fintracker.prefs` | `{ theme, currency, language, demoAsk }` |
 
 `fintracker.savings` is deliberately separate from prefs: clearing preferences (theme, currency,
 language) must not erase savings history or the streak. Because `stateOf()` leaves an array
 un-wrapped, `skippedDays` lives in its own `listOf()` in `store.js` and is merged back by
-`saveSavings()`.
+`saveSavings()`. A new scalar plan field needs only a default in the `savings` `stateOf` literal
+(placed before `...savingsSeed`), which older stored plans pick up automatically.
 
 ## Dispatcher actions
 

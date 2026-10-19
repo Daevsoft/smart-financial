@@ -109,14 +109,24 @@ function planSection() {
     onchange: e => setPlan({ target: Math.max(0, Math.round(Number(e.target.value) || 0)) }),
   });
 
+  const startDayInput = inputNumber({
+    class: "input w-40",
+    min: "1",
+    max: "31",
+    step: "1",
+    onchange: e => setPlan({ startDay: Math.min(31, Math.max(1, Math.round(Number(e.target.value) || 1))) }),
+  });
+
   const sync = () => {
     if (targetInput.o) targetInput.o.value = String(savings.target.value || 0);
+    if (startDayInput.o) startDayInput.o.value = String(savings.startDay.value || 1);
     if (deposit.sel.o) deposit.sel.o.value = savings.depositAccountId.value;
     if (source.sel.o) source.sel.o.value = savings.sourceAccountId.value;
   };
   // Account deletions re-point the plan, and the sheet may set it; mirror both
   // back into the controls after first render.
   savings.target.subscribe(sync);
+  savings.startDay.subscribe(sync);
   savings.depositAccountId.subscribe(sync);
   savings.sourceAccountId.subscribe(sync);
   onMount(sync);
@@ -139,6 +149,13 @@ function planSection() {
           css`flex flex-wrap gap-2`,
           toggle("scheduleDaily", () => savings.schedule.value === "daily", () => setPlan({ schedule: "daily" })),
           toggle("scheduleMonthly", () => savings.schedule.value === "monthly", () => setPlan({ schedule: "monthly" }))
+        ),
+        // A start day only means something for a monthly plan, and Jetz element
+        // children cannot be null, so the row hides itself instead of leaving.
+        div(
+          { style: { display: () => (savings.schedule.value === "monthly" ? "block" : "none") } },
+          label(css`label`, tt("planStartDay")),
+          startDayInput
         ),
         div(
           label(css`label`, tt("planTarget")),

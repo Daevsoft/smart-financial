@@ -109,6 +109,8 @@ export const savings = stateOf({
   enabled: true,
   schedule: "daily",
   target: 25000,
+  // Monthly reminders stay silent until this day of the month (1-31).
+  startDay: 1,
   depositAccountId: "deposit",
   sourceAccountId: "bank",
   lastPromptDay: "",

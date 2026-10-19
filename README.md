@@ -182,12 +182,14 @@ Money lives in accounts rather than in a single implicit balance.
   sum of all balances; **total saved** is the sum of the `deposit`-kind ones.
 - A `transfer` is a third transaction type that is excluded from every income/expense aggregate —
   moving money is not earning or spending — but it still appears in the ledger and the CSV export.
-- The **save plan** sets a suggested amount, a schedule (daily or monthly), a deposit account and a
-  source account. Logging a deposit from the prompt writes an ordinary transfer, so it flows into the
-  balances, the ledger and the streak.
+- The **save plan** sets a suggested amount, a schedule (daily or monthly), the day of the month the
+  monthly reminder opens on (1–31, default 1), a deposit account and a source account. Logging a
+  deposit from the prompt writes an ordinary transfer, so it flows into the balances, the ledger and
+  the streak.
 - The prompt sheet follows the schedule: **daily** it appears once per day on the first open, and
-  "remind later" defers it to tomorrow; **monthly** it returns on every open from the 1st until
-  something lands in the deposit account that month, and "remind later" defers to the next open.
+  "remind later" defers it to tomorrow; **monthly** it returns on every open from the plan's start day
+  (a short month pulls it back to its last day) until something lands in the deposit account that
+  month, and "remind later" defers to the next open.
   Dismissing the sheet always resolves to either *remind later* or *skip today / skip this month*, so
   a skipped period is recorded and stops re-asking.
 - Quick chips offer the plan target split into steps (¼, ½, full). Account pickers disable invalid
@@ -201,8 +203,8 @@ Money lives in accounts rather than in a single implicit balance.
 ### Settings
 
 - Theme (light/dark), currency, and language.
-- Save-money reminders: a switch, daily or monthly schedule, target amount, the deposit/source
-  account pair, and the device-notification permission.
+- Save-money reminders: a switch, daily or monthly schedule, the monthly start day, target amount,
+  the deposit/source account pair, and the device-notification permission.
 - Export the full snapshot to JSON, import a snapshot file (validated; malformed records dropped).
 - Export every transaction as CSV — no filters applied, so nothing is left behind.
 - Load demo data, clear all transactions.
@@ -238,7 +240,7 @@ explicit through `dispatcher.waitFor(...)` rather than module import order: pers
 | `fintracker.transactions` | Array of transaction records |
 | `fintracker.categories` | Array of category records (name, color, icon, type, budget) |
 | `fintracker.accounts` | Array of account records (name, kind, color, icon, opening) |
-| `fintracker.savings` | Save plan + prompt state: `{ enabled, schedule, target, depositAccountId, sourceAccountId, lastPromptDay, skippedMonth, skippedDays }` |
+| `fintracker.savings` | Save plan + prompt state: `{ enabled, schedule, target, startDay, depositAccountId, sourceAccountId, lastPromptDay, skippedMonth, skippedDays }` |
 | `fintracker.prefs` | `{ theme, currency, language, demoAsk, … }` |
 
 Each stored key gets its own `switch` in the persistence subscriber: one action can touch several

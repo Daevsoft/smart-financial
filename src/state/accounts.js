@@ -31,8 +31,20 @@ const shiftDay = (key, delta) => {
   return isoOf(d);
 };
 
-// ---------- Derived views ----------
+// `monthKey` gives YYYY-MM, so day 0 of the following month is this one's last.
+const daysInMonth = month => {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+};
 
+// A stored plan can predate the field or hold a hand-edited value.
+export const planStartDay = () => Math.min(31, Math.max(1, Math.round(Number(savings.startDay.value) || 1)));
+
+// Monthly reminders open on the plan's start day. A short month pulls the date
+// back to its last day so a plan set to the 31st still nudges in February.
+const monthlyWindowOpen = day => Number(day.slice(8, 10)) >= Math.min(planStartDay(), daysInMonth(monthKey(day)));
+
+// ---------- Derived views ----------
 export const accountBalances = listOf(); // [{ id, name, kind, color, icon, opening, balance }]
 export const accCount = stateOf(0);
 export const netWorth = stateOf(0);        // every account, openings included
@@ -121,7 +133,8 @@ function refreshDerivedAccounts() {
 }
 
 // Daily: once per calendar day, and "remind later" defers to the next day.
-// Monthly: every open until the month has a deposit, unless it was skipped.
+// Monthly: every open from the plan's start day until the month has a deposit,
+// unless it was skipped.
 // Session-scoped so reopening the app the same day can nudge again.
 let notifiedPeriod = "";
 
@@ -151,7 +164,10 @@ function refreshPrompt() {
     savings.sourceAccountId.value !== savings.depositAccountId.value;
   const alreadyAsked = schedule === "daily" && savings.lastPromptDay.value === day;
   const monthSkipped = schedule === "monthly" && savings.skippedMonth.value === month;
-  promptVisible.value = Boolean(usable && inPeriod <= 0 && !alreadyAsked && !monthSkipped);
+  const beforeStartDay = schedule === "monthly" && !monthlyWindowOpen(day);
+  promptVisible.value = Boolean(
+    usable && inPeriod <= 0 && !alreadyAsked && !monthSkipped && !beforeStartDay
+  );
 
   // The sheet is already on screen when this fires, so the device copy exists
   // for the notification shade: the nudge outlives closing the app, and tapping
@@ -218,6 +234,7 @@ export const depositAccounts = () => accounts.values.filter(a => a.kind === "dep
 effect(() => {
   savings.enabled.value;
   savings.schedule.value;
+  savings.startDay.value;
   savings.lastPromptDay.value;
   savings.skippedMonth.value;
   prefs.demoAsk.value;
