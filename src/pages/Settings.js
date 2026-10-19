@@ -141,7 +141,7 @@ function startDayPicker() {
     div(
       label(css`label`, tt("planStartDay")),
       button(
-        { class: "input flex w-40 cursor-pointer items-center gap-2 text-left", onclick: () => (open.value = true) },
+        { class: "input flex w-20 cursor-pointer items-center gap-1 text-left tabular-nums", onclick: () => (open.value = true) },
         Icon(UI.calendar, "h-4 w-4"),
         span(computed(() => String(planStartDay())))
       )
@@ -214,10 +214,10 @@ function planSection() {
         // A start day only means something for a monthly plan, and Jetz element
         // children cannot be null, so its cell hides instead of leaving the row.
         div(
-          css`grid gap-3 sm:grid-cols-2`,
+          css`flex flex-wrap items-end gap-3`,
           div(label(css`label`, tt("planTarget")), targetInput),
           div(
-            { style: { display: () => (savings.schedule.value === "monthly" ? "block" : "none") } },
+            { class: () => `shrink-0 ${savings.schedule.value === "monthly" ? "" : "hidden"}` },
             startDayPicker()
           )
         ),
