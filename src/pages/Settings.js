@@ -212,14 +212,14 @@ function planSection() {
           toggle("scheduleMonthly", () => savings.schedule.value === "monthly", () => setPlan({ schedule: "monthly" }))
         ),
         // A start day only means something for a monthly plan, and Jetz element
-        // children cannot be null, so the row hides itself instead of leaving.
+        // children cannot be null, so its cell hides instead of leaving the row.
         div(
-          { style: { display: () => (savings.schedule.value === "monthly" ? "block" : "none") } },
-          startDayPicker()
-        ),
-        div(
-          label(css`label`, tt("planTarget")),
-          targetInput
+          css`grid gap-3 sm:grid-cols-2`,
+          div(label(css`label`, tt("planTarget")), targetInput),
+          div(
+            { style: { display: () => (savings.schedule.value === "monthly" ? "block" : "none") } },
+            startDayPicker()
+          )
         ),
         div(
           css`grid gap-3 sm:grid-cols-2`,
