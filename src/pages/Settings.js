@@ -1,10 +1,11 @@
-import { stateOf, computed, onMount } from "@daevsoft/jetz";
+import { stateOf, computed, effect, onDestroy, onMount } from "@daevsoft/jetz";
 import { div, p, button, label, span, input, inputNumber, select, option, a } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { prefs, dispatcher, Actions, transactions, categories, accounts, savings } from "../state/store.js";
 import { CURRENCY_CODES, setPrefs } from "../state/preferences.js";
 import { txCount, catCount, todayISO } from "../state/transactions.js";
-import { setPlan } from "../state/accounts.js";
+import { setPlan, planStartDay } from "../state/accounts.js";
+import { scrollLock } from "../state/ui.js";
 import { exportSnapshot, importSnapshot, downloadFile } from "../services/storage.js";
 import { ledgerToCSV } from "../services/exportLedger.js";
 import { notificationsSupported, notificationPermission, requestNotificationPermission } from "../services/notify.js";
@@ -93,6 +94,76 @@ function notificationRow() {
   );
 }
 
+// The monthly start day is a day-of-month, never an amount, so it is tapped out
+// on a 1–31 grid instead of typed.
+function startDayPicker() {
+  const open = stateOf(false);
+  const show = () => open.value;
+  const pick = d => {
+    setPlan({ startDay: d });
+    open.value = false;
+  };
+  // The selected class reads planStartDay() through the callback, so choosing a
+  // new day restyles every cell.
+  const cell = d =>
+    button(
+      {
+        class: () =>
+          `h-10 cursor-pointer rounded-xl text-sm font-semibold tabular-nums transition-colors ${
+            planStartDay() === d
+              ? "bg-brand-500 text-white"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`,
+        onclick: () => pick(d),
+      },
+      String(d)
+    );
+
+  const onKey = e => {
+    if (e.key === "Escape") open.value = false;
+  };
+  let locked = false;
+  effect(() => {
+    if (open.value === locked) return;
+    locked = open.value;
+    scrollLock(locked);
+    if (locked) document.addEventListener("keydown", onKey);
+    else document.removeEventListener("keydown", onKey);
+  });
+  onDestroy(() => {
+    scrollLock(false);
+    document.removeEventListener("keydown", onKey);
+  });
+
+  const days = Array.from({ length: 31 }, (_, i) => cell(i + 1));
+
+  return div(
+    div(
+      label(css`label`, tt("planStartDay")),
+      button(
+        { class: "input flex w-40 cursor-pointer items-center gap-2 text-left", onclick: () => (open.value = true) },
+        Icon(UI.calendar, "h-4 w-4"),
+        span(computed(() => String(planStartDay())))
+      )
+    ),
+    div(
+      { class: () => `fixed inset-0 z-50 flex items-end justify-center transition-all duration-200 sm:items-center sm:p-4 ${show() ? "visible" : "invisible pointer-events-none"}` },
+      div({ class: () => `absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-200 ${show() ? "opacity-100" : "opacity-0"}`, onclick: () => (open.value = false) }),
+      div(
+        {
+          class: () => `card sheet relative w-full space-y-4 rounded-b-none p-5 transition-all duration-200 sm:max-w-sm sm:rounded-2xl ${show() ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0 sm:translate-y-3 sm:scale-95"}`,
+          role: "dialog",
+          "aria-modal": "true",
+        },
+        div(css`text-base font-bold text-slate-900 dark:text-white`, tt("planStartDayPick")),
+        div(css`grid grid-cols-7 gap-1.5`, ...days),
+        div(css`text-xs leading-relaxed text-slate-500 dark:text-slate-400`, tt("planStartDayNote")),
+        button({ class: "btn btn-ghost w-full ring-1 ring-slate-300 dark:ring-slate-700", onclick: () => (open.value = false) }, tt("cancel"))
+      )
+    )
+  );
+}
+
 function planSection() {
   // `active` is read through a callback so the button restyles itself when the
   // plan changes instead of keeping the class it was built with.
@@ -109,24 +180,14 @@ function planSection() {
     onchange: e => setPlan({ target: Math.max(0, Math.round(Number(e.target.value) || 0)) }),
   });
 
-  const startDayInput = inputNumber({
-    class: "input w-40",
-    min: "1",
-    max: "31",
-    step: "1",
-    onchange: e => setPlan({ startDay: Math.min(31, Math.max(1, Math.round(Number(e.target.value) || 1))) }),
-  });
-
   const sync = () => {
     if (targetInput.o) targetInput.o.value = String(savings.target.value || 0);
-    if (startDayInput.o) startDayInput.o.value = String(savings.startDay.value || 1);
     if (deposit.sel.o) deposit.sel.o.value = savings.depositAccountId.value;
     if (source.sel.o) source.sel.o.value = savings.sourceAccountId.value;
   };
   // Account deletions re-point the plan, and the sheet may set it; mirror both
   // back into the controls after first render.
   savings.target.subscribe(sync);
-  savings.startDay.subscribe(sync);
   savings.depositAccountId.subscribe(sync);
   savings.sourceAccountId.subscribe(sync);
   onMount(sync);
@@ -154,8 +215,7 @@ function planSection() {
         // children cannot be null, so the row hides itself instead of leaving.
         div(
           { style: { display: () => (savings.schedule.value === "monthly" ? "block" : "none") } },
-          label(css`label`, tt("planStartDay")),
-          startDayInput
+          startDayPicker()
         ),
         div(
           label(css`label`, tt("planTarget")),

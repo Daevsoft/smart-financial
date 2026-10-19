@@ -182,10 +182,9 @@ Money lives in accounts rather than in a single implicit balance.
   sum of all balances; **total saved** is the sum of the `deposit`-kind ones.
 - A `transfer` is a third transaction type that is excluded from every income/expense aggregate —
   moving money is not earning or spending — but it still appears in the ledger and the CSV export.
-- The **save plan** sets a suggested amount, a schedule (daily or monthly), the day of the month the
-  monthly reminder opens on (1–31, default 1), a deposit account and a source account. Logging a
-  deposit from the prompt writes an ordinary transfer, so it flows into the balances, the ledger and
-  the streak.
+- The **save plan** sets a suggested amount, a schedule (daily or monthly), a deposit account and a
+  source account. The monthly start day is picked from a 1–31 grid, not typed. Logging a deposit from
+  the prompt writes an ordinary transfer, so it flows into the balances, the ledger and the streak.
 - The prompt sheet follows the schedule: **daily** it appears once per day on the first open, and
   "remind later" defers it to tomorrow; **monthly** it returns on every open from the plan's start day
   (a short month pulls it back to its last day) until something lands in the deposit account that
