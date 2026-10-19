@@ -3,9 +3,10 @@ import { div, span, button } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { dispatcher, Actions } from "../state/store.js";
 import { categoryById } from "../state/transactions.js";
+import { accountById } from "../state/accounts.js";
 import { fmt } from "../state/preferences.js";
 import { t, tt, localeTag } from "../state/i18n.js";
-import { Icon, UI, CategoryIcon } from "./icons.js";
+import { Icon, UI, CategoryIcon, AccountIcon } from "./icons.js";
 
 // A six-column grid is unusable on a phone and in a narrow card, but the same
 // rows must render at both sizes, so each row is one grid: two auto-placed
@@ -28,13 +29,31 @@ function categoryBadge(categoryId) {
   );
 }
 
+// A transfer has no category, so its badge shows the two ends instead.
+function transferBadge(tx) {
+  const to = accountById(tx.toAccountId);
+  const from = accountById(tx.fromAccountId);
+  return span(
+    {
+      class: "badge",
+      style: { backgroundColor: `${to.color}1f`, color: to.color },
+    },
+    AccountIcon(to, "h-3 w-3"),
+    `${from.name} → ${to.name}`
+  );
+}
+
 function typeBadge(type) {
+  if (type === "transfer") {
+    return span(css`badge bg-sky-500/10 text-sky-600 dark:text-sky-400`, tt("transfer"));
+  }
   return type === "income"
     ? span(css`badge bg-brand-500/10 text-brand-700 dark:text-brand-400`, tt("income"))
     : span(css`badge bg-slate-500/10 text-slate-500 dark:text-slate-400`, tt("expense"));
 }
 
-const amountText = tx => computed(() => `${tx.type === "income" ? "+" : "−"}${fmt(tx.amount)}`);
+const amountText = tx =>
+  computed(() => `${tx.type === "income" ? "+" : tx.type === "transfer" ? "→" : "−"}${fmt(tx.amount)}`);
 
 const dateText = tx =>
   computed(() =>
@@ -61,7 +80,7 @@ export function TransactionTable({ rows, count, onEdit = null }) {
       div(
         {
           class: "shrink-0 text-right text-sm font-semibold tabular-nums @[44rem]:col-start-5 @[44rem]:row-start-1",
-          style: { color: tx.type === "income" ? "#65a30d" : undefined },
+          style: { color: tx.type === "income" ? "#65a30d" : tx.type === "transfer" ? "#0284c7" : undefined },
         },
         amountText(tx)
       ),
@@ -69,7 +88,10 @@ export function TransactionTable({ rows, count, onEdit = null }) {
         css`flex flex-wrap items-center gap-2 @[44rem]:contents`,
         span(css`text-xs whitespace-nowrap text-slate-500 dark:text-slate-400 @[44rem]:col-start-1 @[44rem]:row-start-1 @[44rem]:block`,
           dateText(tx)),
-        span(css`@[44rem]:col-start-3 @[44rem]:row-start-1 @[44rem]:block`, categoryBadge(tx.categoryId)),
+        // Rebuilt whenever the record changes: the loop drops and re-creates a
+        // row whose item object was replaced, so a plain child is safe here.
+        span(css`@[44rem]:col-start-3 @[44rem]:row-start-1 @[44rem]:block`,
+          tx.type === "transfer" ? transferBadge(tx) : categoryBadge(tx.categoryId)),
         span(css`hidden @[44rem]:col-start-4 @[44rem]:row-start-1 @[44rem]:block`, typeBadge(tx.type))
       ),
       ...(onEdit

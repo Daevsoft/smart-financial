@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard.js";
 import { Transactions } from "./pages/Transactions.js";
 import { Budgets } from "./pages/Budgets.js";
 import { Categories } from "./pages/Categories.js";
+import { Accounts } from "./pages/Accounts.js";
 import { Settings } from "./pages/Settings.js";
 
 function readPath() {
@@ -23,6 +24,7 @@ export function createRouter() {
     route("/transactions", Transactions),
     route("/budgets", Budgets),
     route("/categories", Categories),
+    route("/accounts", Accounts),
     route("/settings", Settings)
   );
 }

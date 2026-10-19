@@ -82,8 +82,9 @@ function monthTotals(key) {
   let expense = 0;
   for (const t of transactions.values) {
     if (monthKey(t.date) !== key) continue;
+    // Transfers move money between accounts; they are neither income nor spend.
     if (t.type === "income") income += t.amount;
-    else expense += t.amount;
+    else if (t.type === "expense") expense += t.amount;
   }
   return { income, expense };
 }
@@ -173,7 +174,7 @@ function buildTrend() {
     }
     if (!b) continue;
     if (t.type === "income") b.income += t.amount;
-    else b.expense += t.amount;
+    else if (t.type === "expense") b.expense += t.amount;
   }
 
   // Trim leading empty buckets so the line starts where the data starts.
@@ -205,7 +206,7 @@ function buildNetTrend() {
     const b = index.get(monthKey(t.date));
     if (!b) continue;
     if (t.type === "income") b.income += t.amount;
-    else b.expense += t.amount;
+    else if (t.type === "expense") b.expense += t.amount;
   }
 
   // Same reasoning as buildTrend: a flat run of zero months says nothing, so
@@ -242,7 +243,7 @@ export function refreshDerived() {
   let expense = 0;
   for (const t of visible) {
     if (t.type === "income") income += t.amount;
-    else expense += t.amount;
+    else if (t.type === "expense") expense += t.amount;
   }
   totalIncome.value = round2(income);
   totalExpense.value = round2(expense);
@@ -329,7 +330,7 @@ export function refreshDerived() {
 
   // Transactions per category (for the Categories page rows / delete hints)
   const usage = {};
-  for (const tx of transactions.values) usage[tx.categoryId] = (usage[tx.categoryId] || 0) + 1;
+  for (const tx of transactions.values) if (tx.categoryId) usage[tx.categoryId] = (usage[tx.categoryId] || 0) + 1;
   catUsage.value = usage;
 
   buildTrend();

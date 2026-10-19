@@ -8,6 +8,7 @@ const TONES = {
   red: "bg-red-500/10 text-red-500 dark:text-red-400",
   blue: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
   purple: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
 };
 
 // `value`, `sub` and `delta` accept plain strings or reactive States — states
@@ -19,7 +20,7 @@ export function StatCard({ label, value, icon = UI.card, tone = "brand", sub = n
     div(
       css`flex items-start justify-between`,
       div(css`flex h-10 w-10 items-center justify-center rounded-xl ${TONES[tone] || TONES.brand}`, Icon(icon, "h-5 w-5")),
-      sub ? div(css`max-w-[55%] text-right text-xs font-medium text-slate-400 dark:text-slate-500`, sub) : null
+      sub ? div(css`max-w-[55%] text-right text-xs font-medium text-slate-400 dark:text-slate-500`, sub) : []
     ),
     p(css`card-title`, label),
     div(css`text-2xl font-bold tracking-tight text-slate-900 dark:text-white`, value)

@@ -11,6 +11,7 @@ const ITEMS = [
   { path: "/transactions", key: "transactions", icon: UI.transactions },
   { path: "/budgets", key: "budgets", icon: UI.budgets },
   { path: "/categories", key: "categoriesPage", icon: UI.tags },
+  { path: "/accounts", key: "accounts", icon: UI.bank },
   { path: "/settings", key: "settings", icon: UI.settings },
 ];
 

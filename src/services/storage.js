@@ -3,6 +3,8 @@ const PREFIX = "fintracker";
 export const KEYS = {
   transactions: `${PREFIX}.transactions`,
   categories: `${PREFIX}.categories`,
+  accounts: `${PREFIX}.accounts`,
+  savings: `${PREFIX}.savings`,
   prefs: `${PREFIX}.prefs`,
 };
 
@@ -46,14 +48,17 @@ export function downloadFile(name, content, mime) {
   URL.revokeObjectURL(url);
 }
 
-export function exportSnapshot(transactions, categories, prefs) {
+// v2 added accounts; v1 snapshots import with `accounts: null` so the store
+// can seed defaults and back-fill accountId on the old records.
+export function exportSnapshot(transactions, categories, prefs, accounts) {
   return JSON.stringify(
     {
       app: "fintracker",
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       transactions,
       categories,
+      accounts: accounts || [],
       preferences: prefs,
     },
     null,
@@ -71,16 +76,22 @@ export function importSnapshot(text) {
   if (!snap || !Array.isArray(snap.transactions) || !Array.isArray(snap.categories)) {
     throw new Error("Invalid snapshot: expected arrays of transactions and categories.");
   }
-  const cleanTx = snap.transactions.filter(
-    t => t && typeof t.id === "string" && typeof t.date === "string" &&
-         typeof t.amount === "number" && typeof t.description === "string" && t.categoryId
-  );
+  const cleanTx = snap.transactions.filter(t => {
+    if (!t || typeof t.id !== "string" || typeof t.date !== "string" ||
+        typeof t.amount !== "number" || typeof t.description !== "string") return false;
+    // A transfer needs both ends; every other record needs a category.
+    return t.type === "transfer" ? !!(t.fromAccountId && t.toAccountId) : !!t.categoryId;
+  });
   const cleanCat = snap.categories.filter(
     c => c && typeof c.id === "string" && typeof c.name === "string" && c.color
   );
+  const cleanAcc = Array.isArray(snap.accounts)
+    ? snap.accounts.filter(a => a && typeof a.id === "string" && typeof a.name === "string")
+    : null;
   return {
     transactions: cleanTx,
     categories: cleanCat,
+    accounts: cleanAcc && cleanAcc.length ? cleanAcc : null,
     preferences: snap.preferences && typeof snap.preferences === "object" ? snap.preferences : null,
   };
 }

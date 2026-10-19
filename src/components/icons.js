@@ -21,6 +21,9 @@ import {
   Minus,
   Download,
   Sheet,
+  Landmark,
+  ArrowRightLeft,
+  AlarmClock,
   Upload,
   Dices,
   Sun,
@@ -44,6 +47,11 @@ import movie from "@tabler/icons/outline/movie.svg";
 import receipt2 from "@tabler/icons/outline/receipt-2.svg";
 import pill from "@tabler/icons/outline/pill.svg";
 import pkg from "@tabler/icons/outline/package.svg";
+// Account kinds — Tabler.
+import wallet from "@tabler/icons/outline/wallet.svg";
+import buildingBank from "@tabler/icons/outline/building-bank.svg";
+import deviceMobile from "@tabler/icons/outline/device-mobile.svg";
+import coins from "@tabler/icons/outline/coins.svg";
 
 // Icon SVGs ship with width/height="24"; the wrapper span owns the size and
 // `currentColor` carries text color into the strokes.
@@ -74,6 +82,9 @@ export const UI = {
   minus: Minus,
   download: Download,
   sheet: Sheet,
+  bank: Landmark,
+  transfer: ArrowRightLeft,
+  remind: AlarmClock,
   upload: Upload,
   dices: Dices,
   sun: Sun,
@@ -102,3 +113,15 @@ export const CATEGORY_ICONS = {
 
 export const CategoryIcon = (category, cls = "h-3.5 w-3.5") =>
   Icon(CATEGORY_ICONS[category?.icon] || pkg, cls);
+
+// Keyed by the `icon` field in src/data/accounts.json (Tabler icon names).
+export const ACCOUNT_ICONS = {
+  wallet,
+  "building-bank": buildingBank,
+  "device-mobile": deviceMobile,
+  coins,
+  package: pkg,
+};
+
+export const AccountIcon = (account, cls = "h-4 w-4") =>
+  Icon(ACCOUNT_ICONS[account?.icon] || pkg, cls);

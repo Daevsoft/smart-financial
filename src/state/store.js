@@ -2,6 +2,7 @@ import { stateOf, listOf, Dispatcher } from "@daevsoft/jetz";
 import { KEYS, loadJSON, saveJSON } from "../services/storage.js";
 import { generateDemoData } from "../services/mockData.js";
 import categorySeed from "../data/categories.json";
+import accountSeed from "../data/accounts.json";
 
 // ---------- Actions ----------
 
@@ -12,8 +13,14 @@ export const Actions = {
   CAT_ADD: "cat/add",
   CAT_UPDATE: "cat/update",
   CAT_DELETE: "cat/delete",
+  ACC_ADD: "acc/add",
+  ACC_UPDATE: "acc/update",
+  ACC_DELETE: "acc/delete",
   BUDGET_SET: "budget/set",
   PREFS_SET: "prefs/set",
+  SAVE_PLAN_SET: "save/plan",
+  SAVE_PROMPT: "save/prompt",
+  SAVE_SKIP: "save/skip",
   DATA_IMPORT: "data/import",
   DATA_DEMO: "data/demo",
   DATA_CLEAR: "data/clear",
@@ -39,27 +46,105 @@ function migrateIcons(cats) {
   return cats;
 }
 
+// Accounts wrap every record: spending pulls from one, income lands in one, and
+// a deposit account is where "save money" accumulates.
+export const DEFAULT_ACCOUNT_ID = "cash";
+
+function bootAccounts(stored) {
+  if (Array.isArray(stored) && stored.length) {
+    return stored.map(a => ({ color: "#94a3b8", icon: "package", kind: "custom", opening: 0, ...a }));
+  }
+  return accountSeed.map(a => ({ ...a }));
+}
+
+const firstSpendId = list => (list.find(a => a.kind !== "deposit") || list[0] || {}).id || DEFAULT_ACCOUNT_ID;
+
 // `seeded` reports whether this load generated the demo dataset, which is what
 // triggers the first-visit confirmation sheet.
 function boot() {
   let txs = loadJSON(KEYS.transactions, null);
   let cats = loadJSON(KEYS.categories, null);
+  const storedAccounts = loadJSON(KEYS.accounts, null);
+  const accs = bootAccounts(storedAccounts);
   if (!Array.isArray(txs) || !Array.isArray(cats) || cats.length === 0) {
     const demo = generateDemoData();
-    txs = demo.transactions;
-    cats = demo.categories;
-    saveJSON(KEYS.transactions, txs);
-    saveJSON(KEYS.categories, cats);
-    return { txs, cats, seeded: true };
+    saveJSON(KEYS.transactions, demo.transactions);
+    saveJSON(KEYS.categories, demo.categories);
+    saveJSON(KEYS.accounts, demo.accounts);
+    return {
+      txs: demo.transactions,
+      cats: demo.categories,
+      accounts: demo.accounts,
+      seeded: true,
+    };
   }
   migrateIcons(cats);
-  return { txs, cats, seeded: false };
+  // A ledger written before accounts existed has no accountId anywhere: give
+  // each record the default wallet so balances and pickers stay meaningful.
+  let backfilled = false;
+  for (const t of txs) {
+    if (t.type !== "transfer" && !t.accountId) {
+      t.accountId = firstSpendId(accs);
+      backfilled = true;
+    }
+  }
+  if (backfilled || !Array.isArray(storedAccounts)) {
+    if (backfilled) saveJSON(KEYS.transactions, txs);
+    saveJSON(KEYS.accounts, accs);
+  }
+  return { txs, cats, accounts: accs, seeded: false };
 }
 
 const bootData = boot();
 
 export const transactions = listOf(...bootData.txs);
 export const categories = listOf(...bootData.cats);
+export const accounts = listOf(...bootData.accounts);
+// The save-money plan lives in its own key so clearing preferences (theme,
+// currency, language) never erases savings history or the streak.
+const savingsStore = loadJSON(KEYS.savings, {});
+const { skippedDays: skippedSeed, ...savingsSeed } = savingsStore;
+
+export const savings = stateOf({
+  enabled: true,
+  schedule: "daily",
+  target: 25000,
+  depositAccountId: "deposit",
+  sourceAccountId: "bank",
+  lastPromptDay: "",
+  skippedMonth: "",
+  ...savingsSeed,
+});
+
+// A stateOf() walks its own properties into States, and an array is not a
+// primitive, so the skipped-day history lives in its own list instead. It is
+// saved back into the same key by saveSavings().
+export const skippedDays = listOf(...(Array.isArray(skippedSeed) ? skippedSeed : []));
+
+export const saveSavings = () =>
+  saveJSON(KEYS.savings, { ...savings.toObject(), skippedDays: skippedDays.values });
+
+// Points the plan at accounts that still exist — after a boot, an import or an
+// account delete.
+function repointPlan() {
+  const list = accounts.values;
+  const lives = id => list.some(a => a.id === id);
+  const depositKind = list.find(a => a.kind === "deposit");
+  // A savings target only counts toward "total saved" while it is a deposit
+  // account, so a stale reference moves to one as soon as it exists.
+  const targetOk = id => lives(id) && list.find(a => a.id === id).kind === "deposit";
+  if (!targetOk(savings.depositAccountId.value)) {
+    savings.depositAccountId.value = (depositKind || list[0] || {}).id || "";
+  }
+  if (!lives(savings.sourceAccountId.value) || savings.sourceAccountId.value === savings.depositAccountId.value) {
+    savings.sourceAccountId.value =
+      (list.find(a => a.id !== savings.depositAccountId.value && a.kind !== "deposit") ||
+        list.find(a => a.id !== savings.depositAccountId.value) ||
+        list[0] || {}).id || "";
+  }
+  saveSavings();
+}
+repointPlan();
 // Defaults first so prefs saved before a key existed (e.g. language) still
 // get the fallback value through stateOf's property walk.
 export const prefs = stateOf({
@@ -91,10 +176,12 @@ export const dispatcher = new Dispatcher();
 
 const txIndex = id => transactions.values.findIndex(t => t.id === id);
 const catIndex = id => categories.values.findIndex(c => c.id === id);
+const accIndex = id => accounts.values.findIndex(a => a.id === id);
 
-function replaceAll({ transactions: txs, categories: cats, preferences }) {
+function replaceAll({ transactions: txs, categories: cats, accounts: accs, preferences }) {
   transactions.set(txs);
   categories.set(cats);
+  if (Array.isArray(accs) && accs.length) accounts.set(accs);
   if (preferences) {
     prefs.theme.value = preferences.theme || "light";
     prefs.currency.value = preferences.currency || "IDR";
@@ -103,9 +190,29 @@ function replaceAll({ transactions: txs, categories: cats, preferences }) {
   filters.type.value = "all";
   filters.categoryId.value = "all";
   selectedMonth.value = "all";
+  // A new dataset invalidates the skipped-day history it was built on.
+  skippedDays.clear();
   // An explicit import or demo load is the user's own choice, so the
   // first-visit question no longer applies.
   prefs.demoAsk.value = false;
+  repointPlan();
+}
+
+// When an account is deleted its records move to a surviving one, the same way
+// deleting a category re-homes transactions.
+function rehomeRecords(goneId, nextId) {
+  transactions.set(
+    transactions.values.map(t => {
+      if (t.type === "transfer") {
+        return {
+          ...t,
+          fromAccountId: t.fromAccountId === goneId ? nextId : t.fromAccountId,
+          toAccountId: t.toAccountId === goneId ? nextId : t.toAccountId,
+        };
+      }
+      return t.accountId === goneId ? { ...t, accountId: nextId } : t;
+    })
+  );
 }
 
 dispatcher.subscribe("store", (action, payload) => {
@@ -146,18 +253,62 @@ dispatcher.subscribe("store", (action, payload) => {
       if (filters.categoryId.value === payload) filters.categoryId.value = "all";
       break;
     }
+    case Actions.ACC_ADD:
+      accounts.push(payload);
+      break;
+    case Actions.ACC_UPDATE:
+      accounts.updateAt(accIndex(payload.id), a => ({ ...a, ...payload }));
+      break;
+    case Actions.ACC_DELETE: {
+      if (accounts.values.length <= 1) break; // always keep a place for money to sit
+      const gone = accounts.values.find(a => a.id === payload);
+      accounts.removeAt(accIndex(payload));
+      const rest = accounts.values;
+      const fallback =
+        rest.find(a => a.kind === "cash") || rest.find(a => a.kind !== "deposit") || rest[0];
+      if (gone && fallback) rehomeRecords(gone.id, fallback.id);
+      repointPlan();
+      break;
+    }
     case Actions.PREFS_SET:
       for (const [key, val] of Object.entries(payload)) prefs[key].value = val;
       break;
-    case Actions.DATA_IMPORT:
-      migrateIcons(payload.categories || []);
-      replaceAll(payload);
+    case Actions.SAVE_PLAN_SET:
+      for (const [key, val] of Object.entries(payload)) savings[key].value = val;
       break;
+    case Actions.SAVE_PROMPT:
+      savings.lastPromptDay.value = payload;
+      break;
+    case Actions.SAVE_SKIP:
+      if (payload.schedule === "daily") {
+        savings.lastPromptDay.value = payload.period;
+        skippedDays.set([...skippedDays.values, payload.period].slice(-45));
+      } else {
+        savings.skippedMonth.value = payload.period;
+      }
+      break;
+    case Actions.DATA_IMPORT: {
+      migrateIcons(payload.categories || []);
+      const accs = Array.isArray(payload.accounts) && payload.accounts.length ? payload.accounts : accounts.values;
+      const home = firstSpendId(accs);
+      replaceAll({
+        ...payload,
+        accounts: accs,
+        // A v1 snapshot has no account on each record — send it to the default.
+        transactions: (payload.transactions || []).map(
+          t => (t.type === "transfer" || accs.some(a => a.id === t.accountId) ? t : { ...t, accountId: home })
+        ),
+      });
+      break;
+    }
     case Actions.DATA_DEMO:
       replaceAll(generateDemoData());
       break;
     case Actions.DATA_CLEAR:
       transactions.clear();
+      skippedDays.clear();
+      savings.lastPromptDay.value = "";
+      savings.skippedMonth.value = "";
       prefs.demoAsk.value = false;
       break;
   }
@@ -171,12 +322,15 @@ dispatcher.subscribe("persist", action => {
     case Actions.TX_UPDATE:
     case Actions.TX_DELETE:
     case Actions.CAT_DELETE: // deletion may re-home transactions
+    case Actions.ACC_DELETE: // ... and so does deleting an account
     case Actions.DATA_IMPORT:
     case Actions.DATA_DEMO:
     case Actions.DATA_CLEAR:
       saveJSON(KEYS.transactions, transactions.values);
       break;
   }
+  // One switch per stored key: an action like DATA_DEMO touches several files,
+  // and a single switch would break after the first matching group.
   switch (action) {
     case Actions.BUDGET_SET:
     case Actions.CAT_ADD:
@@ -186,11 +340,33 @@ dispatcher.subscribe("persist", action => {
     case Actions.DATA_DEMO:
       saveJSON(KEYS.categories, categories.values);
       break;
+  }
+  switch (action) {
+    case Actions.ACC_ADD:
+    case Actions.ACC_UPDATE:
+    case Actions.ACC_DELETE:
+    case Actions.DATA_IMPORT:
+    case Actions.DATA_DEMO:
+      saveJSON(KEYS.accounts, accounts.values);
+      break;
+  }
+  switch (action) {
     case Actions.PREFS_SET:
     case Actions.DATA_CLEAR: // clears the pending first-visit question
     case Actions.DATA_IMPORT:
     case Actions.DATA_DEMO:
       saveJSON(KEYS.prefs, prefs.toObject());
+      break;
+  }
+  switch (action) {
+    case Actions.SAVE_PLAN_SET:
+    case Actions.SAVE_PROMPT:
+    case Actions.SAVE_SKIP:
+    case Actions.DATA_CLEAR: // resets the skipped-day history
+    case Actions.ACC_DELETE: // the plan may have lost an account reference
+    case Actions.DATA_IMPORT:
+    case Actions.DATA_DEMO:
+      saveSavings();
       break;
   }
 });

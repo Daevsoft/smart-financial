@@ -2,6 +2,7 @@ import { div } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { MobileTopBar, NavBackdrop, Sidebar } from "./Sidebar.js";
 import { DemoNotice } from "./DemoNotice.js";
+import { SaveMoneyPrompt } from "./SaveMoneyPrompt.js";
 
 export function AppLayout(content) {
   return div(
@@ -10,6 +11,7 @@ export function AppLayout(content) {
     NavBackdrop,
     // Passed by reference, not called, so its effects get their own lifecycle.
     DemoNotice,
+    SaveMoneyPrompt,
     div(
       css`min-w-0 flex-1`,
       MobileTopBar,

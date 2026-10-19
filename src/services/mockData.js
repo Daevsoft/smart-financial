@@ -1,4 +1,9 @@
 import categoriesSeed from "../data/categories.json";
+import accountsSeed from "../data/accounts.json";
+
+// Where the demo spends from, so every account keeps a believable balance:
+// food out of the wallet, transport out of the e-wallet, the rest out of the bank.
+const SPEND_ACCOUNT = { food: "cash", transport: "digital" };
 
 function mulberry32(seed) {
   return function () {
@@ -63,10 +68,26 @@ export function generateDemoData() {
       categoryId: "salary",
       type: "income",
       amount: month >= 4 ? amount(3700, 4100) : amount(3400, 3900),
+      accountId: "bank",
       note: "",
     });
+    // Money set aside for itself: a transfer is neither income nor expense, so
+    // it never touches the totals or the category chart.
+    if (lastDay >= 5) {
+      txs.push({
+        id: id(),
+        date: day(5),
+        description: "Automatic Saving",
+        categoryId: null,
+        type: "transfer",
+        amount: amount(350, 450),
+        fromAccountId: "bank",
+        toAccountId: "deposit",
+        note: "",
+      });
+    }
     if (lastDay >= 18) {
-      txs.push({ id: id(), date: day(18), description: "Freelance Project", categoryId: "salary", type: "income", amount: cost(300, 900), note: "" });
+      txs.push({ id: id(), date: day(18), description: "Freelance Project", categoryId: "salary", type: "income", amount: cost(300, 900), accountId: "bank", note: "" });
     }
 
     const recurring = [
@@ -78,7 +99,7 @@ export function generateDemoData() {
     ];
     for (const r of recurring) {
       if (lastDay >= r.d) {
-        txs.push({ id: id(), date: day(r.d), description: r.desc, categoryId: r.c, type: "expense", amount: cost(r.min, r.max), note: "" });
+        txs.push({ id: id(), date: day(r.d), description: r.desc, categoryId: r.c, type: "expense", amount: cost(r.min, r.max), accountId: "bank", note: "" });
       }
     }
 
@@ -93,6 +114,7 @@ export function generateDemoData() {
           categoryId: cat,
           type: "expense",
           amount: cost(...RANGES[cat]),
+          accountId: SPEND_ACCOUNT[cat] || "bank",
           note: "",
         });
       }
@@ -100,11 +122,11 @@ export function generateDemoData() {
 
     // One memorable outlier so the yearly chart has a story.
     if (month === 6) {
-      txs.push({ id: id(), date: day(9), description: "Summer Vacation", categoryId: "entertainment", type: "expense", amount: amount(850, 1250), note: "Trip" });
-      txs.push({ id: id(), date: day(11), description: "Flight Tickets", categoryId: "transport", type: "expense", amount: amount(420, 560), note: "Trip" });
+      txs.push({ id: id(), date: day(9), description: "Summer Vacation", categoryId: "entertainment", type: "expense", amount: amount(850, 1250), accountId: "bank", note: "Trip" });
+      txs.push({ id: id(), date: day(11), description: "Flight Tickets", categoryId: "transport", type: "expense", amount: amount(420, 560), accountId: "digital", note: "Trip" });
     }
     if (month === 2) {
-      txs.push({ id: id(), date: day(21), description: "New Laptop", categoryId: "shopping", type: "expense", amount: amount(900, 1200), note: "" });
+      txs.push({ id: id(), date: day(21), description: "New Laptop", categoryId: "shopping", type: "expense", amount: amount(900, 1200), accountId: "bank", note: "" });
     }
   }
 
@@ -112,5 +134,8 @@ export function generateDemoData() {
   // Same scale-up for the seed budgets, otherwise every category reads as
   // catastrophically over budget.
   const categories = categoriesSeed.map(c => ({ ...c, budget: money(c.budget) }));
-  return { categories, transactions };
+  // Openings sized so each account stays solvent after its own share of the demo.
+  const openings = { cash: 2400, bank: 800, digital: 2600, deposit: 0 };
+  const accounts = accountsSeed.map(a => ({ ...a, opening: money(openings[a.id] || 0) }));
+  return { accounts, categories, transactions };
 }

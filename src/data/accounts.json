@@ -1,0 +1,6 @@
+[
+  { "id": "cash", "name": "Cash", "kind": "cash", "color": "#22c55e", "icon": "wallet", "opening": 0 },
+  { "id": "bank", "name": "Bank Account", "kind": "bank", "color": "#3b82f6", "icon": "building-bank", "opening": 0 },
+  { "id": "digital", "name": "E-Wallet", "kind": "digital", "color": "#a855f7", "icon": "device-mobile", "opening": 0 },
+  { "id": "deposit", "name": "Deposit", "kind": "deposit", "color": "#eab308", "icon": "coins", "opening": 0 }
+]

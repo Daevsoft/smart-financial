@@ -94,7 +94,7 @@ export function Transactions() {
         filterSelect(
           filters.type,
           v => (filters.type.value = v),
-          [{ value: "all", label: tt("allTypes") }, { value: "income", label: tt("income") }, { value: "expense", label: tt("expense") }]
+          [{ value: "all", label: tt("allTypes") }, { value: "income", label: tt("income") }, { value: "expense", label: tt("expense") }, { value: "transfer", label: tt("transfer") }]
         )
       ),
       div(

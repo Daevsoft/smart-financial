@@ -1,9 +1,10 @@
 import { stateOf, computed, onMount } from "@daevsoft/jetz";
-import { div, p, button, label, input, select, option } from "@daevsoft/jetz/ui";
+import { div, p, button, label, input, inputNumber, select, option, a } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
-import { prefs, dispatcher, Actions, transactions, categories } from "../state/store.js";
+import { prefs, dispatcher, Actions, transactions, categories, accounts, savings } from "../state/store.js";
 import { CURRENCY_CODES, setPrefs } from "../state/preferences.js";
 import { txCount, catCount, todayISO } from "../state/transactions.js";
+import { setPlan } from "../state/accounts.js";
 import { exportSnapshot, importSnapshot, downloadFile } from "../services/storage.js";
 import { ledgerToCSV } from "../services/exportLedger.js";
 import { LANGUAGES, t, tt } from "../state/i18n.js";
@@ -17,6 +18,86 @@ function sectionCard(title, description, ...children) {
       div(css`mt-0.5 text-xs text-slate-500 dark:text-slate-400`, description)
     ),
     ...children
+  );
+}
+
+// Account pickers here are built once per page mount: accounts only change on
+// the #/accounts page, so this component always remounts with them.
+function accountSelect(kind, onchange) {
+  const list = accounts.values.filter(kind);
+  const sel = select(
+    { class: "input w-full sm:w-56", onchange: e => onchange(e.target.value) },
+    list.length ? list.map(a => option({ value: a.id }, a.name)) : [option({ value: "" }, "—")]
+  );
+  return { sel, empty: !list.length };
+}
+
+function planSection() {
+  // `active` is read through a callback so the button restyles itself when the
+  // plan changes instead of keeping the class it was built with.
+  const toggle = (key, active, onclick, icon) =>
+    button({ class: () => `btn ${active() ? "btn-primary" : "btn-ghost"}`, onclick },
+      ...(icon ? [Icon(icon, "h-4 w-4"), " "] : []), tt(key));
+
+  const deposit = accountSelect(a => a.kind === "deposit", id => id && setPlan({ depositAccountId: id }));
+  const source = accountSelect(a => a.kind !== "deposit", id => id && setPlan({ sourceAccountId: id }));
+
+  const targetInput = inputNumber({
+    class: "input w-40",
+    min: "0",
+    step: "1000",
+    onchange: e => setPlan({ target: Math.max(0, Math.round(Number(e.target.value) || 0)) }),
+  });
+
+  const sync = () => {
+    if (targetInput.o) targetInput.o.value = String(savings.target.value || 0);
+    if (deposit.sel.o) deposit.sel.o.value = savings.depositAccountId.value;
+    if (source.sel.o) source.sel.o.value = savings.sourceAccountId.value;
+  };
+  // Account deletions re-point the plan, and the sheet may set it; mirror both
+  // back into the controls after first render.
+  savings.target.subscribe(sync);
+  savings.depositAccountId.subscribe(sync);
+  savings.sourceAccountId.subscribe(sync);
+  onMount(sync);
+
+  return sectionCard(
+    tt("planTitle"),
+    tt("planDesc"),
+    div(
+      css`flex flex-wrap gap-2`,
+      toggle("planEnabled", () => savings.enabled.value, () => setPlan({ enabled: true }), UI.savings),
+      toggle("planDisabled", () => !savings.enabled.value, () => setPlan({ enabled: false }), UI.close)
+    ),
+    div(
+      { style: { display: () => (savings.enabled.value ? "block" : "none") } },
+      div(css`space-y-4 pt-1`,
+        div(
+          css`flex flex-wrap gap-2`,
+          toggle("scheduleDaily", () => savings.schedule.value === "daily", () => setPlan({ schedule: "daily" })),
+          toggle("scheduleMonthly", () => savings.schedule.value === "monthly", () => setPlan({ schedule: "monthly" }))
+        ),
+        div(
+          label(css`label`, tt("planTarget")),
+          targetInput
+        ),
+        div(
+          css`grid gap-3 sm:grid-cols-2`,
+          div(label(css`label`, tt("depositAccount")), deposit.sel),
+          div(label(css`label`, tt("sourceAccountPlan")), source.sel)
+        ),
+        // Jetz element children cannot be null, so the warning is hidden
+        // instead of left out.
+        div({ class: () => `text-xs font-medium ${deposit.empty ? "text-amber-600 dark:text-amber-400" : "hidden"}` },
+          tt("planNoDeposit")),
+        div(
+          css`text-xs text-slate-500 dark:text-slate-400`,
+          a({ href: "#/accounts", class: "font-semibold text-brand-600 hover:underline dark:text-brand-400" }, tt("accounts")),
+          " · ",
+          tt("transferNote")
+        )
+      )
+    )
   );
 }
 
@@ -94,9 +175,10 @@ export function Settings() {
         languageSelect
       )
     ),
+    planSection(),
     sectionCard(
       tt("dataTitle"),
-      computed(() => `${t("transactionsCount", { n: txCount.value })} · ${catCount.value} ${t("categories")} · ${t("snapshotV1")}`),
+      computed(() => `${t("transactionsCount", { n: txCount.value })} · ${catCount.value} ${t("categories")} · ${t("snapshotVersion")}`),
       div(
         css`flex flex-wrap gap-2`,
         button({ class: "btn btn-primary", onclick: doExport }, Icon(UI.download, "h-4 w-4"), " ", tt("exportJson")),

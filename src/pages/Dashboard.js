@@ -14,6 +14,7 @@ import {
   incomeDelta, expenseDelta, txCount, recentTransactions, scopeLabel, monthOptions,
 } from "../state/transactions.js";
 import { fmt } from "../state/preferences.js";
+import { totalSaved, savedThisPeriod, periodSavedLabel } from "../state/accounts.js";
 import { t, tt } from "../state/i18n.js";
 import { UI } from "../components/icons.js";
 
@@ -59,7 +60,7 @@ export function Dashboard() {
     TrendChart(),
     NetTrendChart(),
     div(
-      css`grid gap-4 sm:grid-cols-2 xl:grid-cols-4`,
+      css`grid gap-4 sm:grid-cols-2 xl:grid-cols-5`,
       StatCard({
         label: tt("totalBalance"),
         value: computed(() => fmt(netBalance.value)),
@@ -87,6 +88,13 @@ export function Dashboard() {
         icon: UI.savings,
         tone: "purple",
         sub: computed(() => (totalIncome.value > 0 ? t("incomeKept") : t("addIncomeTrack"))),
+      }),
+      StatCard({
+        label: tt("totalSaved"),
+        value: computed(() => fmt(totalSaved.value)),
+        icon: UI.bank,
+        tone: "amber",
+        sub: computed(() => `${periodSavedLabel.value}: ${fmt(savedThisPeriod.value)}`)
       })
     ),
     div(

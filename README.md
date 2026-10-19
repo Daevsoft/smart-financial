@@ -26,6 +26,7 @@
   - [Transactions](#transactions)
   - [Budgets](#budgets)
   - [Categories](#categories)
+  - [Accounts and save money](#accounts-and-save-money)
   - [Settings](#settings)
 - [Architecture](#architecture)
   - [Data flow](#data-flow)
@@ -62,8 +63,9 @@ pnpm install
 pnpm start          # rspack serve → http://localhost:8080
 ```
 
-The first load seeds roughly nine months of demo transactions and a default category set so the
-charts are never empty (amounts are generated in rupiah, matching the IDR default), then a sheet
+The first load seeds roughly nine months of demo transactions, a default category set and four
+accounts (cash, bank, e-wallet and a deposit one) so the charts are never empty (amounts are
+generated in rupiah, matching the IDR default), then a sheet
 asks whether to keep that sample data or **start fresh** (clears the transactions, keeps the
 categories). The answer is stored in `fintracker.prefs`, so the question appears once and never
 again — reloads included. Later, use **Settings → Load demo data** to regenerate, or **Clear all
@@ -134,7 +136,9 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
 
 ### Dashboard
 
-- Four stat cards — balance, income, expenses, savings rate — each with a month-over-month delta chip.
+- Five stat cards — balance, income, expenses, savings rate, and **Total saved** (money parked in
+  deposit accounts, with a "Saved today / this month" sub-line) — each of the first four with a
+  month-over-month delta chip.
 - **Cash-flow trend** (Chart.js line + area) with a range switch: 1D / 1M / 3M / 6M / 1Y.
 - **Monthly net** stock-style chart: `income − expenses` over the last 12 calendar months, with a
   gradient area fill, a dashed zero baseline, and a MoM percentage chip.
@@ -144,8 +148,10 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
 ### Transactions
 
 - Add, edit and delete through a bottom-sheet form (centered modal on desktop).
-- Two-way bound inputs (`{ bind: state }`), income/expense toggle, category picker, date and amount.
-- Live search plus filters by type, category and month; the month list is derived from the data.
+- Two-way bound inputs (`{ bind: state }`), income / expense / transfer toggle, category and account
+  pickers, date and amount. An expense debits its source account, income credits its target, and a
+  transfer moves money between two accounts.
+- Live search plus filters by type, category, account and month; the month list is derived from the data.
 - Export the rows currently in view to CSV from the toolbar; a short note confirms how many were written.
 - Responsive row layout: stacked label/value pairs on narrow screens, a six-column grid inside wide
   containers — the same component adapts to the card it sits in, not the viewport.
@@ -163,9 +169,36 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
   "Uncategorized".
 - Per-category usage counts; a migration restores seed icon names when stored data predates them.
 
+### Accounts and save money
+
+Money lives in accounts rather than in a single implicit balance.
+
+- Five kinds — **cash, bank, digital wallet, deposit, custom** — each with an auto-picked icon and
+  colour, a name, and an opening balance. `#/accounts` lists them with their derived balance and the
+  number of records using each.
+- Balances are never stored. `src/state/accounts.js` replays every transaction over the openings:
+  income credits, expense debits, a transfer debits one account and credits another. Net worth is the
+  sum of all balances; **total saved** is the sum of the `deposit`-kind ones.
+- A `transfer` is a third transaction type that is excluded from every income/expense aggregate —
+  moving money is not earning or spending — but it still appears in the ledger and the CSV export.
+- The **save plan** sets a suggested amount, a schedule (daily or monthly), a deposit account and a
+  source account. Logging a deposit from the prompt writes an ordinary transfer, so it flows into the
+  balances, the ledger and the streak.
+- The prompt sheet follows the schedule: **daily** it appears once per day on the first open, and
+  "remind later" defers it to tomorrow; **monthly** it returns on every open from the 1st until
+  something lands in the deposit account that month, and "remind later" defers to the next open.
+  Dismissing the sheet always resolves to either *remind later* or *skip today / skip this month*, so
+  a skipped period is recorded and stops re-asking.
+- Quick chips offer the plan target split into steps (¼, ½, full). Account pickers disable invalid
+  options — a deposit account can never be a source, and vice versa.
+- Deleting an account re-homes the transactions that referenced it and repoints the plan at a valid
+  deposit/source pair; the last remaining account cannot be deleted.
+
 ### Settings
 
 - Theme (light/dark), currency, and language.
+- Save-money reminders: on/off, daily or monthly schedule, target amount, and the deposit/source
+  account pair.
 - Export the full snapshot to JSON, import a snapshot file (validated; malformed records dropped).
 - Export every transaction as CSV — no filters applied, so nothing is left behind.
 - Load demo data, clear all transactions.
@@ -180,12 +213,14 @@ Any static host works the same way — publish `dist/`, point the host's SPA fal
 UI event
    │  dispatcher.dispatch(Actions.TX_ADD, payload)
    ▼
-Dispatcher ──► "store"    mutates ListState / prefs (single source of truth)
-          └─► "persist"   waitFor("store"), then writes localStorage
+Dispatcher ──► "store"     mutates ListState / prefs (single source of truth)
+          ├─► "persist"    waitFor("store"), then writes localStorage
+          ├─► "derived"    waitFor("store"), rebuilds the transaction read-model
+          └─► "accounts"   waitFor("store"), rebuilds balances + save-plan state
    ▼
 Jetz reactive state (stateOf / listOf)
    ▼
-computed() + loop()       fine-grained DOM updates, no re-render pass
+computed() + loop()        fine-grained DOM updates, no re-render pass
 ```
 
 Components never mutate domain data directly — they dispatch actions. Subscription ordering is
@@ -198,20 +233,37 @@ explicit through `dispatcher.waitFor(...)` rather than module import order: pers
 |---|---|
 | `fintracker.transactions` | Array of transaction records |
 | `fintracker.categories` | Array of category records (name, color, icon, type, budget) |
-| `fintracker.prefs` | `{ theme, currency, language }` |
+| `fintracker.accounts` | Array of account records (name, kind, color, icon, opening) |
+| `fintracker.savings` | Save plan + prompt state: `{ enabled, schedule, target, depositAccountId, sourceAccountId, lastPromptDay, skippedMonth, skippedDays }` |
+| `fintracker.prefs` | `{ theme, currency, language, demoAsk, … }` |
+
+Each stored key gets its own `switch` in the persistence subscriber: one action can touch several
+files (`DATA_DEMO` rewrites transactions, categories, accounts and prefs), and a single shared
+`switch` would `break` after the first matching group and silently skip the rest.
 
 `src/services/storage.js` owns the keys plus `loadJSON`, `saveJSON`, `clearAll`, `exportSnapshot`
 and `importSnapshot`, and the CSV primitives: `toCSV` (UTF-8 BOM, `\r\n`, quotes only where needed) and
 `downloadFile` (blob → anchor click → revoke). `src/services/exportLedger.js` maps records to rows,
 localizing headers and picking `;` when the locale writes decimals with `,`. Import is defensive: a
 snapshot must contain `transactions` and `categories` arrays, and records are shape-filtered before they
-reach the store.
+reach the store. The ledger columns are date, description, category, account, type, amount and note; a
+transfer's account cell reads `from → to` and its category is an em dash, since it belongs to neither.
+
+Snapshots are version 2 and carry `accounts`. A v1 file (or stored data from before accounts existed)
+imports with `accounts: null`, which makes the store seed the default account set and back-fill
+`accountId` on the old records, so no ledger is orphaned.
 
 ### Derived state
 
 `src/state/transactions.js` is the read-model layer. `refreshDerived()` runs on every store change
 and rebuilds the filtered list, recent list, month options, per-category spending, budget rows,
 over-budget rows, the cash-flow trend series, and the monthly net series.
+
+`src/state/accounts.js` is the second read-model: `refreshDerivedAccounts()` replays the ledger over
+the account openings to produce balances, net worth, per-account usage counts, the deposit streak and
+the saved-this-period figure, then decides whether the save-money prompt should be visible. Counts
+that the UI needs to react to are mirrored into `stateOf` primitives (`accCount`, `skippedRecent`,
+`txCount`) because reading `ListState.values` inside a `computed()` or `effect()` is not tracked.
 
 Reactivity rules that matter here:
 
@@ -223,7 +275,7 @@ Reactivity rules that matter here:
 
 ### Internationalization
 
-`src/state/i18n.js` holds ~150 keys in English and Indonesian. `t(key)` / `tt(key)` return reactive
+`src/state/i18n.js` holds ~220 keys in English and Indonesian. `t(key)` / `tt(key)` return reactive
 values, so switching language updates the UI in place without a remount, and `<html lang>` stays in
 sync. Only interface chrome is translated — user-entered category names and transaction descriptions
 are left as written.
@@ -288,7 +340,7 @@ reactive, so the sheet retranslates live.
     ├── routes.js              # hash + history router, syncs activeRoute
     ├── home.css               # base layer
     ├── styles/app.css         # tailwind entry, design tokens, component classes
-    ├── data/                  # seed categories and transactions (JSON)
+    ├── data/                  # seed categories, accounts and transactions (JSON)
     ├── services/
     │   ├── storage.js         # localStorage keys, snapshot export/import, CSV + download helpers
     │   ├── exportLedger.js    # ledger → locale-aware CSV rows for Excel/Sheets
@@ -296,6 +348,7 @@ reactive, so the sheet retranslates live.
     ├── state/
     │   ├── store.js           # actions, lists, prefs, dispatcher, persistence
     │   ├── transactions.js    # derived read-model: filters, totals, trends, budgets
+    │   ├── accounts.js        # derived read-model: balances, plan, save-money prompt
     │   ├── preferences.js     # theme effect, currency formatting
     │   ├── i18n.js            # en/id dictionaries
     │   └── ui.js              # drawer state, scroll lock
@@ -303,12 +356,15 @@ reactive, so the sheet retranslates live.
     │   ├── AppLayout.js       Sidebar.js          StatCard.js
     │   ├── TrendChart.js      NetTrendChart.js    CategoryChart.js
     │   ├── TransactionTable.js      TransactionForm.js
-    │   ├── QuickActions.js    BudgetAlert.js      DemoNotice.js   icons.js
+    │   ├── SaveMoneyPrompt.js QuickActions.js     BudgetAlert.js
+    │   └── DemoNotice.js      icons.js
     └── pages/
-        ├── Dashboard.js   Transactions.js   Budgets.js   Categories.js   Settings.js
+        ├── Dashboard.js   Transactions.js   Budgets.js   Categories.js
+        └── Accounts.js    Settings.js
 ```
 
-Routes are hash-based: `#/`, `#/transactions`, `#/budgets`, `#/categories`, `#/settings`.
+Routes are hash-based: `#/`, `#/transactions`, `#/budgets`, `#/categories`, `#/accounts`,
+`#/settings`.
 
 ---
 
@@ -325,6 +381,12 @@ Routes are hash-based: `#/`, `#/transactions`, `#/budgets`, `#/categories`, `#/s
   views with `parent.prepend(...)`, so any sibling (page heading, table header row, static
   `<option>`, empty-state message) sinks below the rows on the first list update. Lists are
   therefore wrapped in their own container, and entries like "All time" live inside the looped data.
+- Jetz element children cannot be `null` — `append()` throws on it. Render "nothing" as `[]` (or an
+  array spread for a conditional group of children) and hide optional blocks with a `hidden` class
+  instead of leaving them out.
+- `stateOf(object)` turns its own properties into States but leaves an Array value untouched, so a
+  list stored on such an object has no `.value` and `toObject()` drops it. Keep collections in their
+  own `listOf()` and merge them back by hand when writing the JSON.
 - `src/playground.js` and the Monaco plugin are leftover framework scaffolding — the app entry does
   not import them.
 - `pnpm test` is a placeholder; there is no test suite yet.
