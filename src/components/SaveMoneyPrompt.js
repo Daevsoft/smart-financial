@@ -199,9 +199,11 @@ export function SaveMoneyPrompt() {
       ),
       div(
         { class: () => `${confirming.value ? "hidden" : "flex"} flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800` },
-        button({ class: "btn btn-ghost flex-1", onclick: close },
-          Icon(UI.remind, "h-4 w-4"), " ", span(tt("remindLater")),
-          span(css`block text-xs font-normal text-slate-400 dark:text-slate-500`, remindNote)
+        // The note is a second line under the label: side by side it squeezes
+        // the button's own text out on a phone.
+        button({ class: "btn btn-ghost flex-1 flex-col", onclick: close },
+          div(css`flex items-center gap-2`, Icon(UI.remind, "h-4 w-4"), tt("remindLater")),
+          span(css`text-center text-xs font-normal leading-tight text-slate-400 dark:text-slate-500`, remindNote)
         ),
         button({ class: "btn btn-ghost flex-1 text-slate-500 dark:text-slate-400", onclick: () => (confirming.value = true) },
           Icon(UI.close, "h-4 w-4"), " ", skipLabel)
