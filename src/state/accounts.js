@@ -1,6 +1,8 @@
 import { stateOf, listOf, computed, effect } from "@daevsoft/jetz";
 import { transactions, accounts, savings, skippedDays, prefs, dispatcher, Actions } from "./store.js";
 import { todayISO, monthKey } from "./transactions.js";
+import { fmt } from "./preferences.js";
+import { showDeviceNotification } from "../services/notify.js";
 import { t } from "./i18n.js";
 
 // ---------- Account vocabulary ----------
@@ -120,6 +122,9 @@ function refreshDerivedAccounts() {
 
 // Daily: once per calendar day, and "remind later" defers to the next day.
 // Monthly: every open until the month has a deposit, unless it was skipped.
+// Session-scoped so reopening the app the same day can nudge again.
+let notifiedPeriod = "";
+
 function refreshPrompt() {
   const day = todayISO();
   const month = monthKey(day);
@@ -147,6 +152,23 @@ function refreshPrompt() {
   const alreadyAsked = schedule === "daily" && savings.lastPromptDay.value === day;
   const monthSkipped = schedule === "monthly" && savings.skippedMonth.value === month;
   promptVisible.value = Boolean(usable && inPeriod <= 0 && !alreadyAsked && !monthSkipped);
+
+  // The sheet is already on screen when this fires, so the device copy exists
+  // for the notification shade: the nudge outlives closing the app, and tapping
+  // it comes back through the worker's notificationclick handler.
+  if (promptVisible.value && notifiedPeriod !== period) {
+    notifiedPeriod = period;
+    const monthly = schedule === "monthly";
+    showDeviceNotification({
+      title: t(monthly ? "savePromptTitleMonthly" : "savePromptTitleDaily"),
+      body: t("savePromptBody", {
+        target: fmt(Number(savings.target.value) || 0),
+        from: accountById(savings.sourceAccountId.value).name,
+        to: accountById(savings.depositAccountId.value).name,
+      }),
+      tag: `save-${period}`,
+    });
+  }
 }
 
 // ---------- Plan + prompt writers ----------

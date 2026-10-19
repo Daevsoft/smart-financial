@@ -36,7 +36,7 @@ public/sw.js          network-first worker, precaches index.html's src/href asse
 src/app.js            layout root
 src/routes.js         route table — add new pages here
 src/data/*.json       seed categories, accounts, transactions
-src/services/         storage.js (keys, snapshot, CSV), exportLedger.js, mockData.js
+src/services/         storage.js (keys, snapshot, CSV), exportLedger.js, notify.js, mockData.js
 src/state/            store.js (actions/lists/prefs/dispatcher/persist), transactions.js,
                       accounts.js, preferences.js, i18n.js, ui.js
 src/components/       AppLayout, Sidebar, StatCard, charts, forms, SaveMoneyPrompt, icons
@@ -65,6 +65,10 @@ drives the mobile top-bar title), and its i18n keys.
    `src/state/i18n.js`. User-entered names and descriptions stay as written.
 7. **Icons are Lucide / Tabler SVGs** from `src/components/icons.js`. Never emoji glyphs.
 8. **Charts are Chart.js** (the donut is the one exception: a CSS conic gradient).
+9. **Device reminders go through `src/services/notify.js`.** Show them with
+   `registration.showNotification()` — a bare `new Notification()` never reaches the worker, so its
+   click cannot focus or open the app. Ask for permission on a user gesture only, never on load, and
+   give each nudge a `tag` so a period replaces its own card instead of stacking.
 
 ## LocalStorage keys
 

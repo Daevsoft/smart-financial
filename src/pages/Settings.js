@@ -7,6 +7,7 @@ import { txCount, catCount, todayISO } from "../state/transactions.js";
 import { setPlan } from "../state/accounts.js";
 import { exportSnapshot, importSnapshot, downloadFile } from "../services/storage.js";
 import { ledgerToCSV } from "../services/exportLedger.js";
+import { notificationsSupported, notificationPermission, requestNotificationPermission } from "../services/notify.js";
 import { LANGUAGES, t, tt } from "../state/i18n.js";
 import { Icon, UI } from "../components/icons.js";
 
@@ -60,6 +61,36 @@ function accountSelect(kind, onchange) {
     list.length ? list.map(a => option({ value: a.id }, a.name)) : [option({ value: "" }, "—")]
   );
   return { sel, empty: !list.length };
+}
+
+// The browser owns this permission and cannot revoke it from the page, so the
+// three states hide each other instead of swapping children. The row only
+// exists where notifications work at all — iOS, for one, needs an installed
+// PWA before `Notification` is available.
+function notificationRow() {
+  if (!notificationsSupported()) return [];
+  const permission = stateOf(notificationPermission());
+  const only = state => () => (permission.value === state ? "" : "hidden");
+  const ask = async () => {
+    permission.value = await requestNotificationPermission();
+  };
+
+  return div(
+    css`flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-slate-800`,
+    div(
+      css`min-w-0`,
+      div(css`text-sm font-semibold text-slate-900 dark:text-white`, tt("notifTitle")),
+      div(css`mt-0.5 text-xs text-slate-500 dark:text-slate-400`, tt("notifDesc"))
+    ),
+    button(
+      { class: () => `btn btn-ghost ring-1 ring-slate-300 dark:ring-slate-700 ${only("default")()}`, onclick: ask },
+      Icon(UI.bell, "h-4 w-4"), " ", tt("notifEnable")
+    ),
+    span({ class: () => `badge bg-brand-500/10 text-brand-700 dark:text-brand-300 ${only("granted")()}` },
+      Icon(UI.check, "h-3.5 w-3.5"), " ", tt("notifOn")),
+    span({ class: () => `text-xs font-medium text-amber-600 dark:text-amber-400 ${only("denied")()}` },
+      tt("notifBlocked"))
+  );
 }
 
 function planSection() {
@@ -122,6 +153,7 @@ function planSection() {
         // instead of left out.
         div({ class: () => `text-xs font-medium ${deposit.empty ? "text-amber-600 dark:text-amber-400" : "hidden"}` },
           tt("planNoDeposit")),
+        notificationRow(),
         div(
           css`text-xs text-slate-500 dark:text-slate-400`,
           a({ href: "#/accounts", class: "font-semibold text-brand-600 hover:underline dark:text-brand-400" }, tt("accounts")),

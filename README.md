@@ -32,6 +32,7 @@
   - [Data flow](#data-flow)
   - [Persistence](#persistence)
   - [Derived state](#derived-state)
+  - [Device reminders](#device-reminders)
   - [Internationalization](#internationalization)
   - [Theme and currency](#theme-and-currency)
   - [Responsive shell](#responsive-shell)
@@ -191,14 +192,17 @@ Money lives in accounts rather than in a single implicit balance.
   a skipped period is recorded and stops re-asking.
 - Quick chips offer the plan target split into steps (¼, ½, full). Account pickers disable invalid
   options — a deposit account can never be a source, and vice versa.
+- **Device notifications.** When the reminder opens, the same nudge is mirrored into the notification
+  shade so it outlives closing the app; tapping it focuses an open window or launches the app at the
+  save page. Permission is asked for on **Settings → Device notifications**, never on load.
 - Deleting an account re-homes the transactions that referenced it and repoints the plan at a valid
   deposit/source pair; the last remaining account cannot be deleted.
 
 ### Settings
 
 - Theme (light/dark), currency, and language.
-- Save-money reminders: on/off, daily or monthly schedule, target amount, and the deposit/source
-  account pair.
+- Save-money reminders: a switch, daily or monthly schedule, target amount, the deposit/source
+  account pair, and the device-notification permission.
 - Export the full snapshot to JSON, import a snapshot file (validated; malformed records dropped).
 - Export every transaction as CSV — no filters applied, so nothing is left behind.
 - Load demo data, clear all transactions.
@@ -273,6 +277,23 @@ Reactivity rules that matter here:
 - Mutable content inside a row goes through `computed()` or an attribute callback — a bare value is
   read once at render and never updates.
 
+### Device reminders
+
+The Push API is out of scope: it needs a server holding VAPID keys to wake a closed app, and FinTrack
+has no backend. The reminder instead uses the **Notifications API** from `src/services/notify.js`,
+raised by the app at the moment the prompt opens and then left in the notification shade — the nudge
+survives closing the app, it just cannot appear before the app is next opened.
+
+- It is shown through `registration.showNotification()`, never `new Notification()`: only
+  worker-shown notifications deliver their `notificationclick` event to `public/sw.js`, which is what
+  lets a tap focus an already-open window or launch the app.
+- A `tag` per period (`save-2026-10-19`) means re-opening replaces the old card instead of stacking a
+  list of the same nudge.
+- Permission is requested only from a click on **Settings → Device notifications**. The app never
+  prompts on load, and if the state is `denied` the row explains how to unblock it at browser level.
+- On iOS and iPadOS `Notification` exists only inside an installed PWA (16.4+), so the row hides
+  itself when the API is missing rather than showing a control that cannot work.
+
 ### Internationalization
 
 `src/state/i18n.js` holds ~220 keys in English and Indonesian. `t(key)` / `tt(key)` return reactive
@@ -344,6 +365,7 @@ reactive, so the sheet retranslates live.
     ├── services/
     │   ├── storage.js         # localStorage keys, snapshot export/import, CSV + download helpers
     │   ├── exportLedger.js    # ledger → locale-aware CSV rows for Excel/Sheets
+    │   ├── notify.js          # device reminders through the worker registration
     │   └── mockData.js        # demo data generator
     ├── state/
     │   ├── store.js           # actions, lists, prefs, dispatcher, persistence

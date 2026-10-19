@@ -67,6 +67,20 @@ For downloads, patch `URL.createObjectURL` before clicking the export button and
 Clearing `fintracker.*` entirely reproduces a first-ever visit, including the demo seed and the
 first-visit sheet.
 
+## Device notifications
+
+The automated Chrome that `browser-use` drives denies the notifications permission up front, on every
+origin — check `Notification.permission` before planning a test, because the Allow button never appears
+and no banner will show. What is still verifiable:
+
+- The Settings row renders the state the browser reports (blocked hint, no Enable button).
+- `curl -s http://localhost:8123/sw.js | grep -n notificationclick` proves the *served* worker carries
+  the click handler — an edited `public/sw.js` is only live after the worker updates.
+- The prompt opening with permission denied must leave the console clean; the call fails quietly.
+
+Claiming an actual banner appeared, or that tapping it focused the app, requires a real browser profile
+where the permission can be granted. Say so instead of guessing.
+
 ## Behavioural matrix
 
 Walk the rows that apply to the change, screenshotting each one:

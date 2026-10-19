@@ -65,3 +65,21 @@ self.addEventListener("fetch", event => {
       )
   );
 });
+
+// Tapping the reminder is a route back into the app: an already-open window is
+// focused where it stands (the save sheet is global, so it is already there),
+// and with nothing running the app launches at the URL the notification carried.
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(list => {
+        for (const client of list) {
+          if ("focus" in client) return client.focus();
+        }
+        return self.clients.openWindow(target);
+      })
+  );
+});
