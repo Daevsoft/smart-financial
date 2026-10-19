@@ -1,5 +1,5 @@
 import { stateOf, computed, onMount } from "@daevsoft/jetz";
-import { div, p, button, label, input, inputNumber, select, option, a } from "@daevsoft/jetz/ui";
+import { div, p, button, label, span, input, inputNumber, select, option, a } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { prefs, dispatcher, Actions, transactions, categories, accounts, savings } from "../state/store.js";
 import { CURRENCY_CODES, setPrefs } from "../state/preferences.js";
@@ -10,14 +10,44 @@ import { ledgerToCSV } from "../services/exportLedger.js";
 import { LANGUAGES, t, tt } from "../state/i18n.js";
 import { Icon, UI } from "../components/icons.js";
 
-function sectionCard(title, description, ...children) {
+function cardHead(title, description, right) {
   return div(
-    css`card space-y-4`,
+    css`flex items-start justify-between gap-4`,
     div(
       div(css`text-sm font-bold text-slate-900 dark:text-white`, title),
       div(css`mt-0.5 text-xs text-slate-500 dark:text-slate-400`, description)
     ),
-    ...children
+    right || []
+  );
+}
+
+function sectionCard(title, description, ...children) {
+  return div(css`card space-y-4`, cardHead(title, description), ...children);
+}
+
+function switchCard(title, description, right, ...children) {
+  return div(css`card space-y-4`, cardHead(title, description, right), ...children);
+}
+
+// `on` and `labelKey` are read through callbacks so the switch and its caption
+// restyle themselves when the plan changes, rather than keeping the class and
+// text they were built with.
+function Switch(on, onclick, labelKey) {
+  return button(
+    {
+      role: "switch",
+      "aria-checked": () => String(on()),
+      "aria-label": () => t(labelKey),
+      // The pseudo-element widens the hit area to roughly a button's without
+      // changing the 24px visual height of the track.
+      class: () =>
+        `relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/70 before:absolute before:-inset-2 before:content-[''] ${on() ? "bg-brand-500" : "bg-slate-300 dark:bg-slate-600"}`,
+      onclick,
+    },
+    div({
+      class: () =>
+        `h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${on() ? "translate-x-5" : "translate-x-0"}`,
+    })
   );
 }
 
@@ -35,9 +65,8 @@ function accountSelect(kind, onchange) {
 function planSection() {
   // `active` is read through a callback so the button restyles itself when the
   // plan changes instead of keeping the class it was built with.
-  const toggle = (key, active, onclick, icon) =>
-    button({ class: () => `btn ${active() ? "btn-primary" : "btn-ghost"}`, onclick },
-      ...(icon ? [Icon(icon, "h-4 w-4"), " "] : []), tt(key));
+  const toggle = (key, active, onclick) =>
+    button({ class: () => `btn ${active() ? "btn-primary" : "btn-ghost"}`, onclick }, tt(key));
 
   const deposit = accountSelect(a => a.kind === "deposit", id => id && setPlan({ depositAccountId: id }));
   const source = accountSelect(a => a.kind !== "deposit", id => id && setPlan({ sourceAccountId: id }));
@@ -61,13 +90,16 @@ function planSection() {
   savings.sourceAccountId.subscribe(sync);
   onMount(sync);
 
-  return sectionCard(
+  return switchCard(
     tt("planTitle"),
     tt("planDesc"),
     div(
-      css`flex flex-wrap gap-2`,
-      toggle("planEnabled", () => savings.enabled.value, () => setPlan({ enabled: true }), UI.savings),
-      toggle("planDisabled", () => !savings.enabled.value, () => setPlan({ enabled: false }), UI.close)
+      css`flex shrink-0 items-center gap-2`,
+      // The caption is dropped below the `sm` breakpoint so the card title keeps
+      // a single line — the switch alone reads clearly on a phone.
+      span(css`hidden text-xs font-medium text-slate-500 dark:text-slate-400 sm:inline`,
+        computed(() => t(savings.enabled.value ? "planEnabled" : "planDisabled"))),
+      Switch(() => savings.enabled.value, () => setPlan({ enabled: !savings.enabled.value }), "planTitle")
     ),
     div(
       { style: { display: () => (savings.enabled.value ? "block" : "none") } },
