@@ -246,7 +246,8 @@ export function Settings() {
   const status = stateOf("");
 
   const doExport = () => {
-    downloadFile(`fintrack-export-${todayISO()}.json`, exportSnapshot(transactions.values, categories.values, prefs.toObject()), "application/json");
+    const json = exportSnapshot(transactions.values, categories.values, prefs.toObject(), accounts.values);
+    downloadFile(`fintrack-export-${todayISO()}.json`, json, "application/json");
     status.value = t("statusExported");
   };
 
