@@ -1,5 +1,5 @@
 // FinTrack service worker — offline app shell.
-// Data lives in LocalStorage, so the only thing that must survive going offline
+// Data lives in IndexedDB, so the only thing that must survive going offline
 // is the bundle. Reads are network-first and mirrored into the cache, which
 // keeps a dev-server rebuild fresh while still answering when the network is
 // gone.

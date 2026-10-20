@@ -49,13 +49,28 @@ targets, and the drawer top bar.
 
 ## Driving a scenario
 
-LocalStorage is same-origin, so seed or reset state from the parent frame and then reload the app:
+IndexedDB is same-origin but asynchronous, so seeding from the parent frame returns a promise —
+reload only after it settles:
 
 ```js
-() => { const s = JSON.parse(localStorage.getItem('fintracker.savings'));
-  s.lastPromptDay = ''; s.skippedMonth = '';
-  localStorage.setItem('fintracker.savings', JSON.stringify(s)); return s; }
+() => new Promise(done => {
+  const open = indexedDB.open('fintracker');
+  open.onupgradeneeded = () => open.result.createObjectStore('kv');
+  open.onsuccess = () => {
+    const db = open.result, tx = db.transaction('kv', 'readwrite');
+    const store = tx.objectStore('kv');
+    const get = k => new Promise(r => { const q = store.get(k); q.onsuccess = () => r(q.result); });
+    get('fintracker.savings').then(s => {
+      if (s) { s.lastPromptDay = ''; s.skippedMonth = ''; store.put(s, 'fintracker.savings'); }
+      tx.oncomplete = () => { db.close(); done(s || 'missing'); };
+    });
+  };
+})
 ```
+
+Keys hold parsed values (not JSON strings), and a `put` replaces the whole entry — read, mutate,
+write. `fintracker.theme` in localStorage is the pre-paint dark-mode mirror, safe to inspect
+synchronously.
 
 For downloads, patch `URL.createObjectURL` before clicking the export button and stash the blob text:
 
@@ -64,8 +79,12 @@ For downloads, patch `URL.createObjectURL` before clicking the export button and
   URL.createObjectURL = b => { b.text().then(t => { window.__cap = t; }); return orig(b); }; return 'armed'; }
 ```
 
-Clearing `fintracker.*` entirely reproduces a first-ever visit, including the demo seed and the
-first-visit sheet.
+Deleting the database plus leftover localStorage keys reproduces a first-ever visit, including the
+demo seed and the first-visit sheet:
+
+```js
+() => { localStorage.clear(); indexedDB.deleteDatabase('fintracker'); return 'reset'; }
+```
 
 ## Device notifications
 

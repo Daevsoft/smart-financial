@@ -11,7 +11,7 @@ const DICT = {
     budgets: "Budgets",
     settings: "Settings",
     offlineTitle: "100% offline",
-    offlineBody: "Your data never leaves this browser — everything lives in LocalStorage.",
+    offlineBody: "Your data never leaves this browser — everything lives in IndexedDB.",
 
     // Common
     cancel: "Cancel",
@@ -260,7 +260,7 @@ const DICT = {
     notifBlocked: "Blocked — allow notifications for this site in your browser settings.",
     about: "About",
     aboutBody:
-      "FinTrack is built with Jetz — a composable JavaScript framework with no JSX and no virtual DOM. Everything runs offline; LocalStorage is the only database.",
+      "FinTrack is built with Jetz — a composable JavaScript framework with no JSX and no virtual DOM. Everything runs offline; IndexedDB is the only database.",
   },
 
   id: {
@@ -269,7 +269,7 @@ const DICT = {
     budgets: "Anggaran",
     settings: "Pengaturan",
     offlineTitle: "100% luring",
-    offlineBody: "Data Anda tidak pernah meninggalkan browser ini — semuanya tersimpan di LocalStorage.",
+    offlineBody: "Data Anda tidak pernah meninggalkan browser ini — semuanya tersimpan di IndexedDB.",
 
     cancel: "Batal",
     close: "Tutup",
@@ -505,7 +505,7 @@ const DICT = {
     notifBlocked: "Diblokir — izinkan notifikasi untuk situs ini di pengaturan peramban.",
     about: "Tentang",
     aboutBody:
-      "FinTrack dibangun dengan Jetz — framework JavaScript komposisional tanpa JSX dan tanpa virtual DOM. Semuanya berjalan luring; LocalStorage adalah satu-satunya basis data.",
+      "FinTrack dibangun dengan Jetz — framework JavaScript komposisional tanpa JSX dan tanpa virtual DOM. Semuanya berjalan luring; IndexedDB adalah satu-satunya basis data.",
   },
 };
 

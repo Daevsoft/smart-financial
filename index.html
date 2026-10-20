@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="FinTrack — an offline personal finance tracker built with Jetz. All data stays in your browser's LocalStorage." />
+    <meta name="description" content="FinTrack — an offline personal finance tracker built with Jetz. All data stays in your browser's IndexedDB." />
     <meta name="theme-color" content="#84cc16" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/img/app-icon.svg" />
@@ -15,9 +15,12 @@
     <meta name="apple-mobile-web-app-title" content="FinTrack" />
     <title>FinTrack — Personal Finance Tracker</title>
     <script>
+      // IndexedDB cannot be read synchronously, so storage.js mirrors the theme
+      // into localStorage for this pre-paint check. The legacy prefs key covers
+      // one reload right after upgrading, before the mirror exists.
       try {
-        var prefs = JSON.parse(localStorage.getItem("fintracker.prefs"));
-        if (prefs && prefs.theme === "dark") document.documentElement.classList.add("dark");
+        var raw = localStorage.getItem("fintracker.theme") || localStorage.getItem("fintracker.prefs");
+        if (JSON.parse(raw).theme === "dark") document.documentElement.classList.add("dark");
       } catch (e) {}
     </script>
 </head>

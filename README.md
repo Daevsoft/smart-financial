@@ -47,7 +47,7 @@
 
 Most budgeting tools are either spreadsheets or cloud accounts. FinTrack aims for the middle: a real
 app — dashboards, charts, budgets, filters — that is entirely local. Everything lives in
-`localStorage`, exports to a plain JSON file or an Excel-friendly CSV, and reimports from the JSON snapshot.
+`IndexedDB`, exports to a plain JSON file or an Excel-friendly CSV, and reimports from the JSON snapshot.
 
 It doubles as a reference for building a non-trivial SPA with [Jetz](https://github.com/devarofi/jetz):
 plain JavaScript composition functions instead of JSX, fine-grained reactive state instead of a
@@ -99,7 +99,7 @@ FinTrack is a PWA:
   the very first document request is not intercepted (no worker exists yet), so without it
   `main.js` would never be cached and a cold offline start would render a blank page.
 - No backend, no API calls: after one visit the app is fully usable with no network — routes, charts,
-  forms and LocalStorage all work.
+  forms and IndexedDB all work.
 
 Install with the browser's install entry (address-bar icon on desktop, browser menu on Android);
 `localhost` counts as a secure context, so installs can be tested locally.
@@ -219,7 +219,7 @@ UI event
    │  dispatcher.dispatch(Actions.TX_ADD, payload)
    ▼
 Dispatcher ──► "store"     mutates ListState / prefs (single source of truth)
-          ├─► "persist"    waitFor("store"), then writes localStorage
+          ├─► "persist"    waitFor("store"), then writes IndexedDB
           ├─► "derived"    waitFor("store"), rebuilds the transaction read-model
           └─► "accounts"   waitFor("store"), rebuilds balances + save-plan state
    ▼
@@ -338,7 +338,7 @@ reactive, so the sheet retranslates live.
 | Styling | Tailwind CSS v4 via `@tailwindcss/postcss`, tokens and component classes in `src/styles/app.css` |
 | Charts | Chart.js 4 (line/area; the donut is a CSS conic gradient) |
 | Icons | `lucide-static`, `@tabler/icons` |
-| Persistence | Browser `localStorage` |
+| Persistence | Browser `IndexedDB` (one `kv` store; localStorage only mirrors the theme pre-paint) |
 | App shell | Web app manifest + one service worker (`public/sw.js`) |
 | Package manager | pnpm |
 
@@ -364,7 +364,7 @@ reactive, so the sheet retranslates live.
     ├── styles/app.css         # tailwind entry, design tokens, component classes
     ├── data/                  # seed categories, accounts and transactions (JSON)
     ├── services/
-    │   ├── storage.js         # localStorage keys, snapshot export/import, CSV + download helpers
+    │   ├── storage.js         # IndexedDB kv store, snapshot export/import, CSV + download helpers
     │   ├── exportLedger.js    # ledger → locale-aware CSV rows for Excel/Sheets
     │   ├── notify.js          # device reminders through the worker registration
     │   └── mockData.js        # demo data generator

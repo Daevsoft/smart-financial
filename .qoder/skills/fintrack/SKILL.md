@@ -1,6 +1,6 @@
 ---
 name: fintrack
-description: Work on FinTrack, the offline personal-finance SPA at C:\Labs\ai\mini-app (Jetz + Rspack + Tailwind v4, LocalStorage as the only database). Use when adding or changing features, state, pages, storage keys, translations, exports, or the PWA shell, and when the task needs the project's own architecture rules, build commands, and browser-verification workflow.
+description: Work on FinTrack, the offline personal-finance SPA at C:\Labs\ai\mini-app (Jetz + Rspack + Tailwind v4, IndexedDB as the only database). Use when adding or changing features, state, pages, storage keys, translations, exports, or the PWA shell, and when the task needs the project's own architecture rules, build commands, and browser-verification workflow.
 ---
 
 # FinTrack Project Guide
@@ -8,7 +8,7 @@ description: Work on FinTrack, the offline personal-finance SPA at C:\Labs\ai\mi
 ## Overview
 
 FinTrack is an installable, fully offline single-page finance tracker: dashboards, ledger, budgets,
-accounts and a save-money nudge, with LocalStorage as the only database. Plain JavaScript +
+accounts and a save-money nudge, with IndexedDB as the only database. Plain JavaScript +
 `@daevsoft/jetz` (no JSX, no virtual DOM), a Flux `Dispatcher` as the single mutation path, Tailwind
 v4, Chart.js, hash routing, Rspack, deployed to Vercel as static `dist/`.
 
@@ -70,12 +70,19 @@ drives the mobile top-bar title), and its i18n keys.
    click cannot focus or open the app. Ask for permission on a user gesture only, never on load, and
    give each nudge a `tag` so a period replaces its own card instead of stacking.
 
-## LocalStorage keys
+## IndexedDB storage
 
-`src/services/storage.js` owns them: `fintracker.transactions`, `.categories`, `.accounts`,
-`.savings`, `.prefs`. Snapshots are version 2 and carry `accounts`; a v1 file imports with
-`accounts: null`, which makes the store seed defaults and back-fill `accountId`. Any new key must be
-added to `KEYS` so `clearAll()` covers it, and to the JSON snapshot if it belongs in an export.
+`src/services/storage.js` owns it: database `fintracker` (version 1) with a single `kv` object store
+holding one entry per key: `fintracker.transactions`, `.categories`, `.accounts`, `.savings`,
+`.prefs` — values are the structured-cloned payloads, not JSON strings. `loadJSON`/`saveJSON` stay
+synchronous over an in-memory cache that `initStorage()` fills before the app graph is imported
+(`index.js` awaits it); writes coalesce per key and flush in one transaction. A legacy
+localStorage copy migrates once on load (IndexedDB wins; the old keys are removed after commit),
+and if IndexedDB cannot open, the module falls back to localStorage so persistence never dies.
+`fintracker.theme` in localStorage is only a pre-paint mirror for index.html's inline dark-mode
+check. Snapshots are version 2 and carry `accounts`; a v1 file imports with `accounts: null`, which
+makes the store seed defaults and back-fill `accountId`. Any new key must be added to `KEYS` so
+`clearAll()` covers it, and to the JSON snapshot if it belongs in an export.
 
 ## Reactivity traps hit in this repo
 
