@@ -1,4 +1,4 @@
-import { stateOf, computed, effect, onMount, onDestroy, loop } from "@daevsoft/jetz";
+import { stateOf, computed, effect, onMount, onDestroy } from "@daevsoft/jetz";
 import { div, span, button, label, inputNumber, select, option } from "@daevsoft/jetz/ui";
 import { css } from "@daevsoft/jetz/ui";
 import { accounts, savings } from "../state/store.js";
@@ -77,15 +77,14 @@ export function SaveMoneyPrompt() {
   const skipLabel = computed(() => t(monthly.value ? "skipMonth" : "skipDay"));
   const remindNote = computed(() => t(monthly.value ? "remindLaterMonthly" : "remindLaterDaily"));
 
-  // Options come from the live account list, so an account added elsewhere
-  // appears without remounting the sheet. `loop` is each select's only child.
-  // Only deposit-kind accounts can receive savings (that is what total saved
-  // counts), so the other side of the pair is disabled rather than filtered.
+  // Options come from the account list at mount, like every other select here:
+  // `accounts` may only be looped() over by one site, and two selects cannot
+  // share that site. `disabled` stays reactive through a callback attribute, so
+  // picking a savings target immediately greys that account out on the other
+  // side of the pair — only deposit-kind accounts can receive savings.
   const accountPickers = () => {
     const opts = allow =>
-      loop(accounts, a => `${a.id}:${a.name}:${allow(a) ? 1 : 0}`, a =>
-        option({ value: a.id, disabled: !allow(a) }, a.name)
-      );
+      accounts.values.map(a => option({ value: a.id, disabled: () => !allow(a) }, a.name));
     const isDeposit = a => a.kind === "deposit";
     const notDeposit = a => a.kind !== "deposit";
     const sourceSelect = select(
