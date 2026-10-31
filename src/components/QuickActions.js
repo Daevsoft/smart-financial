@@ -213,7 +213,10 @@ function buildBudgetModal() {
 
   const catSelect = select(
     { class: "input", onchange: e => (categoryId.value = e.target.value) },
-    loop(budgetCats, c => `${c.id}:${c.name}`, c => option({ value: c.id }, c.name))
+    // `selected` as a callback keeps the choice visible when budgetCats is
+    // re-snapped, which replaces these option nodes and their selectedness.
+    loop(budgetCats, c => `${c.id}:${c.name}`,
+      c => option({ value: c.id, selected: () => categoryId.value === c.id }, c.name))
   );
   const syncCat = () => {
     if (catSelect.o && categoryId.value) catSelect.o.value = categoryId.value;

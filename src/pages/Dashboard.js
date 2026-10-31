@@ -25,8 +25,10 @@ function monthPicker() {
     // parent, so a sibling <option> would sink to the bottom. "All time" is the
     // first entry of monthOptions. Label is part of the key because same-key
     // rows are recycled without re-render, so a language change must force a
-    // fresh option element.
-    loop(monthOptions, m => `${m.value}:${m.label}`, m => option({ value: m.value }, m.label))
+    // fresh option element. `selected` stays a callback: a rebuild replaces the
+    // nodes and the browser would drop the selection with them.
+    loop(monthOptions, m => `${m.value}:${m.label}`,
+      m => option({ value: m.value, selected: () => selectedMonth.value === m.value }, m.label))
   );
   const sync = () => {
     if (sel.o) sel.o.value = selectedMonth.value;

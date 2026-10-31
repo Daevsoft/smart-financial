@@ -88,7 +88,8 @@ makes the store seed defaults and back-fill `accountId`. Any new key must be add
 
 These each caused a real bug here; re-read them before debugging a "stale UI" report.
 
-- Reading `ListState.values` or `.length` inside `computed()`/`effect()` is **not tracked**. Mirror
+- Reading `ListState.values` or `.length` inside `computed()`/`effect()` is **not tracked** (jetz 1.2.0
+  tracks only `list.value` / `list.version`). Mirror
   the count into a `stateOf` primitive (`txCount`, `accCount`, `skippedRecent`) and read that.
 - `stateOf(object)` wraps its own properties into States but leaves an **Array** value alone, so
   `state.someList.value` is `undefined` and `toObject()` drops the key. Keep collections in their own

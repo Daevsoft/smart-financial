@@ -333,7 +333,7 @@ reactive, so the sheet retranslates live.
 
 | Concern | Choice |
 |---|---|
-| UI framework | `@daevsoft/jetz` 1.1.3 — reactive state, `loop`, router, `Dispatcher` |
+| UI framework | `@daevsoft/jetz` 1.2.0 — reactive state, `loop`, router, `Dispatcher` |
 | Bundler / dev server | Rspack (`@rspack/cli`, `@rspack/core`, `@rspack/dev-server`) |
 | Styling | Tailwind CSS v4 via `@tailwindcss/postcss`, tokens and component classes in `src/styles/app.css` |
 | Charts | Chart.js 4 (line/area; the donut is a CSS conic gradient) |

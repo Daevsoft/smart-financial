@@ -29,8 +29,11 @@ function periodSelect() {
   const sel = select(
     { class: "input", onchange: e => (selectedMonth.value = e.target.value) },
     // Only child of the select — see monthPicker() on the dashboard for why a
-    // sibling <option> would sink below the rebuilt month options.
-    loop(monthOptions, m => `${m.value}:${m.label}`, m => option({ value: m.value }, m.label))
+    // sibling <option> would sink below the rebuilt month options. `selected` is
+    // a callback because a rebuild replaces the option nodes and the browser
+    // drops the selection with them; `sync()` below only covers the rest.
+    loop(monthOptions, m => `${m.value}:${m.label}`,
+      m => option({ value: m.value, selected: () => selectedMonth.value === m.value }, m.label))
   );
   const sync = () => {
     if (sel.o) sel.o.value = selectedMonth.value;
