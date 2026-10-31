@@ -70,7 +70,7 @@ td({ class: () => emp.dept });        // reactive attribute
 
 **Keyed reconciliation.** `loop(list, item => item.id, item => li(...))` recycles DOM per key. Each item render runs in a disposal scope: every `effect()`, `computed()`, subscription and listener created there is released automatically when the row leaves the DOM. The classic `loop(list, renderFn)` form still works.
 
-**One `loop()` site per `ListState`.** Two `loop()` calls over the same list fight over its DOM: the second site receives nodes produced by the first renderer (e.g. `<tr>` inside a card container) and renders nothing useful. Render the list once and make the single row layout responsive instead.
+**One `loop()` site per `ListState`.** `loop()` does not create a view — it stores its key and render callbacks *on the list* (`list.renderCallback`), then returns the list. So with two `loop()` sites over one list, the last call wins and BOTH parents render with that second callback: rows appear in the wrong place, or a filter/predicate looks inverted (two `<select>`s over one list each show the other's enabled options). Render the list once and make the single row layout responsive; for a second consumer, build plain children from `list.values` at mount.
 
 **A `loop()` must be the only child of its parent element.** The reconciler inserts and moves rebuilt views with `parent.prepend(...)`, so on the first list update every non-loop sibling — a page heading, a table header row, a static `<option>`, an empty-state message — is pushed below the rows. Wrap the loop in its own container (`div(css\`space-y-4\`, loop(...))`) and put entries like an "All time" option inside the looped data.
 
